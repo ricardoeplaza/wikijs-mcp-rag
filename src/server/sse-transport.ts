@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { logger } from '../logger.js';
+import type { WikiClient } from '../wiki/client.js';
 import { createMcpServer } from './mcp-server.js';
 
 /**
@@ -8,13 +9,14 @@ import { createMcpServer } from './mcp-server.js';
  *
  * One McpServer per SSE connection, kept in an in-memory map keyed by the
  * transport session id. Entries are removed when the SSE connection closes.
+ * The shared `wiki` client is passed to every per-session server.
  */
-export function registerSseTransports(app: FastifyInstance): void {
+export function registerSseTransports(app: FastifyInstance, wiki: WikiClient): void {
   const transports = new Map<string, SSEServerTransport>();
 
   app.get('/sse', async (request, reply) => {
     const transport = new SSEServerTransport('/message', reply.raw);
-    const server = createMcpServer();
+    const server = createMcpServer({ wiki });
     try {
       reply.hijack();
       // server.connect() calls transport.start(), which opens the SSE stream.

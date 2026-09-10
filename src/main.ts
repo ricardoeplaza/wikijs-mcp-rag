@@ -2,6 +2,7 @@ import { pathToFileURL } from 'node:url';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { loadConfig, type Config } from './config.js';
 import { logger } from './logger.js';
+import { WikiClient } from './wiki/client.js';
 import { createAuthMiddleware } from './server/auth.js';
 import { registerHttpTransport } from './server/http-transport.js';
 import { registerSseTransports } from './server/sse-transport.js';
@@ -17,12 +18,17 @@ import { registerSseTransports } from './server/sse-transport.js';
 export function createApp(config: Config): FastifyInstance {
   const app = Fastify({ logger: false });
 
+  // Single shared WikiClient for the whole app. It is lazy: the constructor
+  // only builds the HTTP client, no live connection happens until the first
+  // GraphQL call (the real endpoint wiring stays in the integration stage).
+  const wiki = new WikiClient(config);
+
   app.get('/health', async () => ({ status: 'ok' }));
 
   app.register(async (scope) => {
     scope.addHook('onRequest', createAuthMiddleware(config));
-    registerHttpTransport(scope);
-    registerSseTransports(scope);
+    registerHttpTransport(scope, wiki);
+    registerSseTransports(scope, wiki);
   });
 
   return app;

@@ -1,24 +1,32 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
+import type { WikiClient } from '../wiki/client.js';
+import { registerAllTools } from '../tools/index.js';
 
 export const SERVER_INFO: Implementation = {
   name: 'wikijs-mcp-rag',
   version: '0.1.0',
 };
 
+/** Dependencies for {@link createMcpServer}. */
+export interface McpServerDeps {
+  wiki: WikiClient;
+}
+
 /**
  * Creates a fresh McpServer with all tools registered.
  *
- * Etapa 2: only the `ping` test tool. The 17 CRUD tools (Etapa 4) and the 4 RAG
- * tools (Etapa 7) will be registered here via src/tools/index.ts.
+ * Etapa 4b: `ping` + the 17 CRUD tools (pages/users/groups) via
+ * `registerAllTools`. The RAG tools (Etapa 5) will be registered here too.
  */
-export function createMcpServer(): McpServer {
+export function createMcpServer(deps: McpServerDeps): McpServer {
   const server = new McpServer(SERVER_INFO);
-  registerTools(server);
+  registerPing(server);
+  registerAllTools(server, deps.wiki);
   return server;
 }
 
-function registerTools(server: McpServer): void {
+function registerPing(server: McpServer): void {
   server.registerTool(
     'ping',
     {
