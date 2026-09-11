@@ -367,6 +367,18 @@ export class RagDb {
     return hits;
   }
 
+  /** Total number of chunks stored across all pages. */
+  countChunks(): number {
+    const row = this.db.prepare('SELECT COUNT(*) AS n FROM chunks').get() as { n: number };
+    return Number(row.n);
+  }
+
+  /** The most recent `indexed_at` across all pages, or `null` when no page is indexed. */
+  lastIndexedAt(): string | null {
+    const row = this.db.prepare('SELECT MAX(indexed_at) AS latest FROM pages').get() as { latest: string | null };
+    return row.latest === null ? null : row.latest;
+  }
+
   /** Closes the underlying SQLite connection. */
   close(): void {
     this.db.close();
