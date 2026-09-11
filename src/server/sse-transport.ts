@@ -3,20 +3,21 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { logger } from '../logger.js';
 import type { WikiClient } from '../wiki/client.js';
 import { createMcpServer } from './mcp-server.js';
+import type { RagToolsDeps } from '../tools/rag.js';
 
 /**
  * GET /sse + POST /message?sessionId=... — legacy MCP SSE transport (plan §10.2/§10.3).
  *
  * One McpServer per SSE connection, kept in an in-memory map keyed by the
  * transport session id. Entries are removed when the SSE connection closes.
- * The shared `wiki` client is passed to every per-session server.
+ * The shared `wiki` client (and optional RAG deps) are passed to every per-session server.
  */
-export function registerSseTransports(app: FastifyInstance, wiki: WikiClient): void {
+export function registerSseTransports(app: FastifyInstance, wiki: WikiClient, rag?: RagToolsDeps): void {
   const transports = new Map<string, SSEServerTransport>();
 
   app.get('/sse', async (request, reply) => {
     const transport = new SSEServerTransport('/message', reply.raw);
-    const server = createMcpServer({ wiki });
+    const server = createMcpServer({ wiki, rag });
     try {
       reply.hijack();
       // server.connect() calls transport.start(), which opens the SSE stream.

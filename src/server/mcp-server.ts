@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { WikiClient } from '../wiki/client.js';
 import { registerAllTools } from '../tools/index.js';
+import { registerRagTools, type RagToolsDeps } from '../tools/rag.js';
 
 export const SERVER_INFO: Implementation = {
   name: 'wikijs-mcp-rag',
@@ -11,18 +12,24 @@ export const SERVER_INFO: Implementation = {
 /** Dependencies for {@link createMcpServer}. */
 export interface McpServerDeps {
   wiki: WikiClient;
+  /** Optional RAG stack. When present, the 4 RAG tools are registered too. */
+  rag?: RagToolsDeps;
 }
 
 /**
  * Creates a fresh McpServer with all tools registered.
  *
- * Etapa 4b: `ping` + the 17 CRUD tools (pages/users/groups) via
- * `registerAllTools`. The RAG tools (Etapa 5) will be registered here too.
+ * Etapa 7b: `ping` + the 17 CRUD tools (pages/users/groups) via
+ * `registerAllTools`, and — when `deps.rag` is provided — the 4 RAG tools via
+ * `registerRagTools`.
  */
 export function createMcpServer(deps: McpServerDeps): McpServer {
   const server = new McpServer(SERVER_INFO);
   registerPing(server);
   registerAllTools(server, deps.wiki);
+  if (deps.rag) {
+    registerRagTools(server, deps.rag);
+  }
   return server;
 }
 

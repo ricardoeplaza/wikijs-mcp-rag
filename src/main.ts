@@ -3,6 +3,10 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { loadConfig, type Config } from './config.js';
 import { logger } from './logger.js';
 import { WikiClient } from './wiki/client.js';
+import { RagDb } from './rag/db.js';
+import { EmbeddingsClient } from './rag/embeddings.js';
+import { Indexer } from './rag/indexer.js';
+import { Querier } from './rag/querier.js';
 import { createAuthMiddleware } from './server/auth.js';
 import { registerHttpTransport } from './server/http-transport.js';
 import { registerSseTransports } from './server/sse-transport.js';
@@ -23,12 +27,27 @@ export function createApp(config: Config): FastifyInstance {
   // GraphQL call (the real endpoint wiring stays in the integration stage).
   const wiki = new WikiClient(config);
 
+  // RAG stack (Etapa 7b). All local/lazy at construction: RagDb opens the SQLite
+  // file (no network), EmbeddingsClient only stores options, Indexer/Querier just
+  // hold references. checkIntegrity surfaces an actionable error on a dims mismatch
+  // (rebuild is Etapa 8/9) instead of corrupting search results later.
+  const ragDb = new RagDb({ file: config.ragDbPath, dims: config.embeddingsDim });
+  ragDb.checkIntegrity(config.embeddingsDim);
+  const embeddings = new EmbeddingsClient({
+    baseUrl: config.embeddingsBaseUrl,
+    model: config.embeddingsModel,
+    dims: config.embeddingsDim,
+  });
+  const indexer = new Indexer({ db: ragDb, embeddings, wiki });
+  const querier = new Querier({ db: ragDb, embeddings });
+  const rag = { querier, indexer };
+
   app.get('/health', async () => ({ status: 'ok' }));
 
   app.register(async (scope) => {
     scope.addHook('onRequest', createAuthMiddleware(config));
-    registerHttpTransport(scope, wiki);
-    registerSseTransports(scope, wiki);
+    registerHttpTransport(scope, wiki, rag);
+    registerSseTransports(scope, wiki, rag);
   });
 
   return app;
