@@ -7,6 +7,7 @@ import { RagDb } from './rag/db.js';
 import { EmbeddingsClient } from './rag/embeddings.js';
 import { Indexer } from './rag/indexer.js';
 import { Querier } from './rag/querier.js';
+import { SyncService } from './rag/sync.js';
 import { createAuthMiddleware } from './server/auth.js';
 import { registerHttpTransport } from './server/http-transport.js';
 import { registerSseTransports } from './server/sse-transport.js';
@@ -42,12 +43,16 @@ export function createApp(config: Config): FastifyInstance {
   const querier = new Querier({ db: ragDb, embeddings });
   const rag = { querier, indexer };
 
+  // Etapa 8a: fire-and-forget RAG sync hooks for the page CRUD tools. Failures
+  // are logged by the SyncService and never propagate to tool responses.
+  const sync = new SyncService({ indexer, logger });
+
   app.get('/health', async () => ({ status: 'ok' }));
 
   app.register(async (scope) => {
     scope.addHook('onRequest', createAuthMiddleware(config));
-    registerHttpTransport(scope, wiki, rag);
-    registerSseTransports(scope, wiki, rag);
+    registerHttpTransport(scope, wiki, rag, sync);
+    registerSseTransports(scope, wiki, rag, sync);
   });
 
   return app;

@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import type { SyncService } from '../rag/sync.js';
 import type { WikiClient } from '../wiki/client.js';
 
 /** Builds the success envelope: JSON-serialized payload in a single text block. */
@@ -21,8 +22,12 @@ const onlyPublished = (pages: { isPublished: boolean }[]) => pages.filter((page)
  * Every tool follows the same contract: on success it returns the Wiki.js payload
  * as JSON in `content[0].text`; on failure it returns `isError: true` with the
  * error message, so a thrown `WikiClient` error never crashes the transport.
+ *
+ * Etapa 8a: after each successful MUTATING operation (create/update/publish/
+ * delete/force_delete) the optional `sync` hook is fired WITHOUT awaiting, so
+ * RAG reindex/purge runs in the background and never affects the tool response.
  */
-export function registerPageTools(server: McpServer, wiki: WikiClient): void {
+export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: SyncService): void {
   server.registerTool(
     'get_page',
     {
@@ -110,7 +115,9 @@ export function registerPageTools(server: McpServer, wiki: WikiClient): void {
     },
     async (args) => {
       try {
-        return jsonResult(await wiki.createPage(args));
+        const page = await wiki.createPage(args);
+        sync?.onAfterChange(page.id);
+        return jsonResult(page);
       } catch (err) {
         return errorResult(err);
       }
@@ -131,7 +138,9 @@ export function registerPageTools(server: McpServer, wiki: WikiClient): void {
     },
     async ({ id, ...input }) => {
       try {
-        return jsonResult(await wiki.updatePage(id, input));
+        const page = await wiki.updatePage(id, input);
+        sync?.onAfterChange(id);
+        return jsonResult(page);
       } catch (err) {
         return errorResult(err);
       }
@@ -147,6 +156,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient): void {
     async ({ id }) => {
       try {
         await wiki.deletePage(id);
+        sync?.onAfterDelete(id);
         return jsonResult({ deleted: true, id });
       } catch (err) {
         return errorResult(err);
@@ -162,7 +172,9 @@ export function registerPageTools(server: McpServer, wiki: WikiClient): void {
     },
     async ({ id }) => {
       try {
-        return jsonResult(await wiki.publishPage(id));
+        const page = await wiki.publishPage(id);
+        sync?.onAfterChange(id);
+        return jsonResult(page);
       } catch (err) {
         return errorResult(err);
       }
@@ -178,6 +190,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient): void {
     async ({ id }) => {
       try {
         await wiki.forceDeletePage(id);
+        sync?.onAfterDelete(id);
         return jsonResult({ deleted: true, id, forced: true });
       } catch (err) {
         return errorResult(err);

@@ -3,6 +3,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SERVER_INFO } from '../../src/server/mcp-server.js';
+import type { SyncService } from '../../src/rag/sync.js';
 import { registerPageTools } from '../../src/tools/pages.js';
 import type { WikiClient } from '../../src/wiki/client.js';
 
@@ -86,11 +87,15 @@ interface Harness {
   close: () => Promise<void>;
 }
 
+interface SetupOptions {
+  sync?: SyncService;
+}
+
 /** Real McpServer + real SDK client over an in-memory transport (no network). */
-async function setup(): Promise<Harness> {
+async function setup(options: SetupOptions = {}): Promise<Harness> {
   const server = new McpServer(SERVER_INFO);
   const { wiki, fns } = makeWiki();
-  registerPageTools(server, wiki);
+  registerPageTools(server, wiki, options.sync);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: 'pages-test-client', version: '0.0.1' });
   await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
@@ -276,6 +281,105 @@ describe('registerPageTools (Etapa 4a)', () => {
       const result = await client.callTool({ name: 'get_page', arguments: { id: 99 } });
       expect(isErrorOf(result)).toBe(true);
       expect(textOf(result)).toBe('boom get_page');
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe('registerPageTools sync hooks (Etapa 8a)', () => {
+  /** SyncService mock: the hooks are fired fire-and-forget, so plain vi.fn suffice. */
+  function makeSync() {
+    const fns = {
+      onAfterChange: vi.fn(async () => undefined),
+      onAfterDelete: vi.fn(async () => undefined),
+    };
+    return { sync: fns as unknown as SyncService, fns };
+  }
+
+  it('create_page fires onAfterChange with the NEW page id after success', async () => {
+    const { sync, fns } = makeSync();
+    const { client, close } = await setup({ sync });
+    try {
+      const result = await client.callTool({
+        name: 'create_page',
+        arguments: { path: '/nueva', title: 'Nueva', content: '# Hola' },
+      });
+      expect(isErrorOf(result)).toBe(false);
+      expect(fns.onAfterChange).toHaveBeenCalledTimes(1);
+      // the wiki mock's createPage returns a page with id 10
+      expect(fns.onAfterChange).toHaveBeenCalledWith(10);
+    } finally {
+      await close();
+    }
+  });
+
+  it('update_page fires onAfterChange with the page id', async () => {
+    const { sync, fns } = makeSync();
+    const { client, close } = await setup({ sync });
+    try {
+      const result = await client.callTool({ name: 'update_page', arguments: { id: 7, content: 'nuevo' } });
+      expect(isErrorOf(result)).toBe(false);
+      expect(fns.onAfterChange).toHaveBeenCalledTimes(1);
+      expect(fns.onAfterChange).toHaveBeenCalledWith(7);
+    } finally {
+      await close();
+    }
+  });
+
+  it('publish_page fires onAfterChange with the page id', async () => {
+    const { sync, fns } = makeSync();
+    const { client, close } = await setup({ sync });
+    try {
+      const result = await client.callTool({ name: 'publish_page', arguments: { id: 2 } });
+      expect(isErrorOf(result)).toBe(false);
+      expect(fns.onAfterChange).toHaveBeenCalledTimes(1);
+      expect(fns.onAfterChange).toHaveBeenCalledWith(2);
+    } finally {
+      await close();
+    }
+  });
+
+  it('delete_page fires onAfterDelete with the page id', async () => {
+    const { sync, fns } = makeSync();
+    const { client, close } = await setup({ sync });
+    try {
+      const result = await client.callTool({ name: 'delete_page', arguments: { id: 4 } });
+      expect(isErrorOf(result)).toBe(false);
+      expect(fns.onAfterDelete).toHaveBeenCalledTimes(1);
+      expect(fns.onAfterDelete).toHaveBeenCalledWith(4);
+    } finally {
+      await close();
+    }
+  });
+
+  it('force_delete_page fires onAfterDelete with the page id', async () => {
+    const { sync, fns } = makeSync();
+    const { client, close } = await setup({ sync });
+    try {
+      const result = await client.callTool({ name: 'force_delete_page', arguments: { id: 4 } });
+      expect(isErrorOf(result)).toBe(false);
+      expect(fns.onAfterDelete).toHaveBeenCalledTimes(1);
+      expect(fns.onAfterDelete).toHaveBeenCalledWith(4);
+    } finally {
+      await close();
+    }
+  });
+
+  it('fires no hook when the wiki operation fails', async () => {
+    const { sync, fns } = makeSync();
+    const { client, fns: wikiFns, close } = await setup({ sync });
+    try {
+      wikiFns.createPage.mockImplementation(async () => {
+        throw new Error('boom create');
+      });
+      const result = await client.callTool({
+        name: 'create_page',
+        arguments: { path: '/x', title: 'X', content: '# x' },
+      });
+      expect(isErrorOf(result)).toBe(true);
+      expect(fns.onAfterChange).not.toHaveBeenCalled();
+      expect(fns.onAfterDelete).not.toHaveBeenCalled();
     } finally {
       await close();
     }

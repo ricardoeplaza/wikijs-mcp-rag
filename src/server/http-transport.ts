@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { logger } from '../logger.js';
+import type { SyncService } from '../rag/sync.js';
 import type { WikiClient } from '../wiki/client.js';
 import { createMcpServer } from './mcp-server.js';
 import type { RagToolsDeps } from '../tools/rag.js';
@@ -10,15 +11,21 @@ import type { RagToolsDeps } from '../tools/rag.js';
  *
  * A new McpServer is created per request and closed when the request finishes:
  * no session state is kept between requests (`sessionIdGenerator: undefined`).
- * The shared `wiki` client (and optional RAG deps) are passed to every per-request server.
+ * The shared `wiki` client (and optional RAG deps + sync hooks) are passed to
+ * every per-request server.
  */
-export function registerHttpTransport(app: FastifyInstance, wiki: WikiClient, rag?: RagToolsDeps): void {
+export function registerHttpTransport(
+  app: FastifyInstance,
+  wiki: WikiClient,
+  rag?: RagToolsDeps,
+  sync?: SyncService,
+): void {
   app.post('/mcp', async (request, reply) => {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,
     });
-    const server = createMcpServer({ wiki, rag });
+    const server = createMcpServer({ wiki, rag, sync });
     try {
       reply.hijack();
       await server.connect(transport);
