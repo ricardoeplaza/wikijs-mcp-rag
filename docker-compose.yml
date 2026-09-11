@@ -1,0 +1,36 @@
+# =============================================================================
+# wikijs-mcp-rag — despliegue local (solo nuestro servicio)
+#
+# Wiki.js y el servidor de embeddings son EXTERNOS: no se definen aquí.
+# Apúntalos desde .env (WIKIJS_BASE_URL, EMBEDDINGS_BASE_URL).
+#
+# Uso:
+#   cp .env.example .env   # rellena WIKIJS_TOKEN y MCP_TOKEN
+#   docker compose up -d --build
+# =============================================================================
+services:
+  wikijs-mcp-rag:
+    build: .
+    image: wikijs-mcp-rag:latest
+    container_name: wikijs-mcp-rag
+    # Todas las variables de config.ts vienen de .env (ver .env.example).
+    env_file:
+      - .env
+    environment:
+      # Ruta del SQLite dentro del contenedor, sobre el volumen persistente /data.
+      # Sobrescribe RAG_DB_PATH de .env para que sea correcta en Docker.
+      RAG_DB_PATH: /data/wikijs-rag.db
+    ports:
+      # <host>:<contenedor>. El contenedor escucha siempre en 8000 (EXPOSE del Dockerfile).
+      - "${MCP_PORT:-8000}:8000"
+    volumes:
+      # Persistencia de la base SQLite (chunks + vectores) entre reinicios.
+      - ./data:/data
+    restart: unless-stopped
+    healthcheck:
+      # GET /health no requiere auth y responde { status: 'ok' }.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
