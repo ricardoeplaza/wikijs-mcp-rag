@@ -170,4 +170,18 @@ describe('registerUserTools + registerGroupTools (Etapa 4b)', () => {
       await close();
     }
   });
+
+  it('list_groups returns isError:true with the message when the wiki client throws', async () => {
+    const { client, fns, close } = await setup();
+    try {
+      fns.listGroups.mockImplementation(async () => {
+        throw new Error('boom list_groups');
+      });
+      const result = await client.callTool({ name: 'list_groups', arguments: {} });
+      expect(isErrorOf(result)).toBe(true);
+      expect(textOf(result)).toBe('boom list_groups');
+    } finally {
+      await close();
+    }
+  });
 });

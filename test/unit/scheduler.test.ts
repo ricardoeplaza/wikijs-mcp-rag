@@ -98,4 +98,48 @@ describe('Scheduler (Etapa 8b, nightly full reindex)', () => {
 
     scheduler.stop();
   });
+
+  it('logs a warning when the one-shot nightly run fails', async () => {
+    vi.useFakeTimers();
+    const reindexAll = vi.fn(async () => {
+      throw new Error('reindex boom');
+    });
+    const indexer = { reindexAll } as unknown as Indexer;
+    const warn = vi.fn();
+    const logger = { warn } as unknown as Logger;
+    const base = localAt(0, 0);
+    const scheduler = new Scheduler({ indexer, hour: 3, minute: 0, now: () => base, logger });
+
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(scheduler.msUntilNext()); // fire the one-shot
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ err: expect.any(Error) }),
+      'Scheduler: nightly run failed',
+    );
+    scheduler.stop();
+  });
+
+  it('logs a warning when the scheduled interval run fails', async () => {
+    vi.useFakeTimers();
+    const reindexAll = vi.fn(async () => {
+      throw new Error('reindex boom');
+    });
+    const indexer = { reindexAll } as unknown as Indexer;
+    const warn = vi.fn();
+    const logger = { warn } as unknown as Logger;
+    const base = localAt(0, 0);
+    const scheduler = new Scheduler({ indexer, hour: 3, minute: 0, now: () => base, logger });
+
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(scheduler.msUntilNext()); // one-shot fires + arms interval
+    warn.mockClear();
+    await vi.advanceTimersByTimeAsync(DAY_MS); // trigger the 24h interval tick
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ err: expect.any(Error) }),
+      'Scheduler: scheduled run failed',
+    );
+    scheduler.stop();
+  });
 });

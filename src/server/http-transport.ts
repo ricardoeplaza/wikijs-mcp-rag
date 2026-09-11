@@ -33,7 +33,11 @@ export function registerHttpTransport(
     } catch (error) {
       logger.error({ err: error }, 'Streamable HTTP request failed');
       if (!reply.raw.headersSent) {
-        reply.code(500).send({ error: 'internal_error' });
+        // The reply was hijacked, so `reply.send()` is a no-op; write the 500
+        // straight to the raw socket or the client would hang on the error.
+        reply.raw.statusCode = 500;
+        reply.raw.setHeader('content-type', 'application/json');
+        reply.raw.end(JSON.stringify({ error: 'internal_error' }));
       } else {
         reply.raw.destroy(error instanceof Error ? error : new Error(String(error)));
       }

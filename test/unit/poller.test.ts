@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Logger } from 'pino';
 import type { EmbeddingsClient } from '../../src/rag/embeddings.js';
 import { RagDb, type RagDbOptions } from '../../src/rag/db.js';
 import { Indexer } from '../../src/rag/indexer.js';
@@ -183,5 +184,62 @@ describe('Poller (Etapa 8b, incremental resync)', () => {
     poller.stop();
     await vi.advanceTimersByTimeAsync(5000);
     expect(wiki.listAllPages).toHaveBeenCalledTimes(2); // no further runs after stop
+  });
+
+  it('records a purge failure in errors (purgePage throws)', async () => {
+    const db = makeDb();
+    const indexer = new Indexer({ db, embeddings: makeEmbeddingsMock() as unknown as EmbeddingsClient });
+    await indexer.indexPage({ id: 1, path: '/a', title: 'A', content: CONTENT_A });
+    // The wiki reports an empty corpus → page 1 must be purged.
+    const wiki = makeWikiMock([]);
+    const poller = new Poller({ wiki: wiki as unknown as WikiClient, db, indexer, intervalMs: 60_000 });
+
+    vi.spyOn(indexer, 'purgePage').mockImplementation(() => {
+      throw new Error('purge boom');
+    });
+    const report = await poller.runOnce();
+
+    expect(report.purged).toBe(0);
+    expect(report.errors).toEqual([{ id: 1, error: 'purge boom' }]);
+  });
+
+  it('start() logs a warning when the initial fire-and-forget runOnce fails', async () => {
+    vi.useFakeTimers();
+    const db = makeDb();
+    const indexer = new Indexer({ db, embeddings: makeEmbeddingsMock() as unknown as EmbeddingsClient });
+    const warn = vi.fn();
+    const logger = { warn } as unknown as Logger;
+    const wiki = { listAllPages: vi.fn(async () => { throw new Error('list boom'); }), getPageContent: vi.fn() };
+    const poller = new Poller({ wiki: wiki as unknown as WikiClient, db, indexer, intervalMs: 1000, logger });
+
+    poller.start();
+    await vi.advanceTimersByTimeAsync(0); // let the fire-and-forget rejection settle
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ err: expect.any(Error) }),
+      'Poller: initial runOnce failed',
+    );
+    poller.stop();
+  });
+
+  it('logs a warning when a scheduled runOnce fails', async () => {
+    vi.useFakeTimers();
+    const db = makeDb();
+    const indexer = new Indexer({ db, embeddings: makeEmbeddingsMock() as unknown as EmbeddingsClient });
+    const warn = vi.fn();
+    const logger = { warn } as unknown as Logger;
+    const wiki = { listAllPages: vi.fn(async () => { throw new Error('list boom'); }), getPageContent: vi.fn() };
+    const poller = new Poller({ wiki: wiki as unknown as WikiClient, db, indexer, intervalMs: 1000, logger });
+
+    poller.start();
+    await vi.advanceTimersByTimeAsync(0); // settle the initial failure
+    warn.mockClear();
+    await vi.advanceTimersByTimeAsync(1000); // trigger one scheduled tick
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ err: expect.any(Error) }),
+      'Poller: scheduled runOnce failed',
+    );
+    poller.stop();
   });
 });
