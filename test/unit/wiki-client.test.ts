@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WikiClient, type RequestImpl } from '../../src/wiki/client.js';
+import { WikiClient, buildRequestHeaders, type RequestImpl } from '../../src/wiki/client.js';
 import { queries, type QueryName } from '../../src/wiki/queries.js';
 
 type Call = { query: string; variables?: unknown };
@@ -219,5 +219,67 @@ describe('WikiClient (unit, mocked HTTP)', () => {
       ragDefaultTopK: 5,
     };
     expect(() => new WikiClient(config)).not.toThrow();
+  });
+
+  it('createPage throws on an empty create response', async () => {
+    const { client } = buildClient({ CreatePage: { pages: { create: null } } });
+    await expect(client.createPage({ path: '/x', title: 'X', content: 'c' })).rejects.toThrow(/empty response/);
+  });
+
+  it('updatePage throws on an empty update response', async () => {
+    const { client } = buildClient({ UpdatePage: { pages: { update: null } } });
+    await expect(client.updatePage(6, { content: 'c' })).rejects.toThrow(/empty response/);
+  });
+
+  it('publishPage throws on an empty update response', async () => {
+    const { client } = buildClient({ UpdatePage: { pages: { update: null } } });
+    await expect(client.publishPage(3)).rejects.toThrow(/empty response/);
+  });
+
+  it('deletePage throws when the delete responseResult fails', async () => {
+    const { client } = buildClient({ DeletePage: { pages: { delete: { succeeded: false, message: 'locked' } } } });
+    await expect(client.deletePage(5)).rejects.toThrow(/locked/);
+  });
+
+  it('createUser throws when the create user responseResult fails', async () => {
+    const { client } = buildClient({ CreateUser: { users: { create: { succeeded: false, message: 'dup email' } } } });
+    await expect(client.createUser({ name: 'C', email: 'c@e.com', password: 's' })).rejects.toThrow(/dup email/);
+  });
+
+  it('updateUser throws when the update user responseResult fails', async () => {
+    const { client } = buildClient({ UpdateUser: { users: { update: { succeeded: false, message: 'nope' } } } });
+    await expect(client.updateUser(8, { email: 'x@e.com' })).rejects.toThrow(/nope/);
+  });
+
+  it('listPages returns [] when pages.list is null', async () => {
+    const { client } = buildClient({ ListPages: { pages: { list: null } } });
+    expect(await client.listPages()).toEqual([]);
+  });
+
+  it('searchPages falls back to the index for non-finite ids and missing fields', async () => {
+    const results = [
+      { id: 'not-a-number' }, // id -> index, path/title/description/updatedAt all defaulted
+    ];
+    const { client } = buildClient({ SearchPages: { pages: { search: { results } } } });
+    const pages = await client.searchPages('t');
+    expect(pages[0]!).toMatchObject({ id: 0, path: '', title: 'result-0' });
+  });
+
+  it('searchPages returns [] when search is null', async () => {
+    const { client } = buildClient({ SearchPages: { pages: { search: null } } });
+    expect(await client.searchPages('t')).toEqual([]);
+  });
+});
+
+describe('buildRequestHeaders', () => {
+  it('omits Authorization when the token is empty (no API key)', () => {
+    expect(buildRequestHeaders('')).toEqual({ 'Content-Type': 'application/json' });
+  });
+
+  it('includes a Bearer Authorization header when a token is set', () => {
+    expect(buildRequestHeaders('tok-123')).toEqual({
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer tok-123',
+    });
   });
 });

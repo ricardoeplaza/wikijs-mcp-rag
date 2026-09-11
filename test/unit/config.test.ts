@@ -142,12 +142,27 @@ describe('loadConfig', () => {
 
   it('rejects missing required variables', () => {
     setEnv();
-    delete process.env.WIKIJS_TOKEN;
-    expect(() => loadConfig()).toThrowError(/WIKIJS_TOKEN/);
-
-    setEnv();
     delete process.env.EMBEDDINGS_BASE_URL;
     expect(() => loadConfig()).toThrowError(/EMBEDDINGS_BASE_URL/);
+  });
+
+  it('treats WIKIJS_TOKEN as optional: empty token loads without throwing and warns', () => {
+    const warnSpy = vi.spyOn(logger, 'warn');
+    setEnv({ WIKIJS_TOKEN: '' });
+
+    const config = loadConfig();
+
+    expect(config.wikijsToken).toBe('');
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('WIKIJS_TOKEN is empty'));
+  });
+
+  it('treats WIKIJS_TOKEN as optional when the variable is absent entirely', () => {
+    setEnv();
+    delete process.env.WIKIJS_TOKEN;
+
+    const config = loadConfig();
+
+    expect(config.wikijsToken).toBe('');
   });
 
   it('rejects invalid LOG_LEVEL and MCP_PORT', () => {

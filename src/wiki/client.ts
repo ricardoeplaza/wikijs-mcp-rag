@@ -63,6 +63,17 @@ function createInsecureFetch(): typeof fetch {
   return wrapped as unknown as typeof fetch;
 }
 
+/**
+ * Builds the HTTP headers for a GraphQL request. The `Authorization` header is
+ * only included when a non-empty token is configured, so the client works against
+ * a Wiki.js instance with no API key (WIKIJS_TOKEN empty).
+ */
+export function buildRequestHeaders(token: string): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token !== '') headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
 /** Normalizes either the minimal config or the full app `Config` into a client config. */
 function normalizeConfig(config: WikiClientConfig | Config): WikiClientConfig {
   if ('baseUrl' in config) {
@@ -131,10 +142,7 @@ export class WikiClient {
       fetch?: typeof fetch;
     } = {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.token}`,
-      },
+      headers: buildRequestHeaders(config.token),
     };
     if (config.insecureTls) {
       requestConfig.fetch = createInsecureFetch();

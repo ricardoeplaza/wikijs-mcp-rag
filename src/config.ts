@@ -8,7 +8,7 @@ const boolFromEnv = z
 const envSchema = z.object({
   // --- Wiki.js ---
   WIKIJS_BASE_URL: z.string().url().default('http://wikijs:3000'),
-  WIKIJS_TOKEN: z.string().min(1, 'WIKIJS_TOKEN is required (Wiki.js admin token)'),
+  WIKIJS_TOKEN: z.string().default(''),
   WIKIJS_INSECURE_TLS: boolFromEnv.default('true'),
 
   // --- Embeddings (external llama.cpp, OpenAI-compatible) ---
@@ -116,6 +116,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     logger.warn(
       '!!! MCP_TOKEN is empty and MCP_ALLOW_NOAUTH=true: running WITHOUT authentication. ' +
         'Do NOT expose this instance to untrusted networks. !!!',
+    );
+  }
+
+  if (config.wikijsToken === '') {
+    logger.warn(
+      'WIKIJS_TOKEN is empty: the Wiki.js client will call the GraphQL API WITHOUT an ' +
+        'Authorization header. This only works when the target Wiki.js instance has no ' +
+        'API key / admin token configured.',
     );
   }
 

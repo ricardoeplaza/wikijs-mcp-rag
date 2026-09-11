@@ -5,7 +5,7 @@
 # Apúntalos desde .env (WIKIJS_BASE_URL, EMBEDDINGS_BASE_URL).
 #
 # Uso:
-#   cp .env.example .env   # rellena WIKIJS_TOKEN y MCP_TOKEN
+#   cp .env.example .env   # rellena MCP_TOKEN (WIKIJS_TOKEN solo si la instancia usa API key)
 #   docker compose up -d --build
 # =============================================================================
 services:

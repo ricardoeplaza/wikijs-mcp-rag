@@ -105,7 +105,7 @@ Copia [`.env.example`](.env.example) a `.env` y rellena los valores **requeridos
 | Variable | Requerida | Default | Descripción |
 |---|---|---|---|
 | `WIKIJS_BASE_URL` | no | `http://wikijs:3000` | URL base de Wiki.js (endpoint real `<base>/api/graphql`). |
-| `WIKIJS_TOKEN` | **sí** | — | Token admin de Wiki.js. |
+| `WIKIJS_TOKEN` | no | `''` | Token admin de Wiki.js. Opcional: vacío ⇒ el cliente omite el header `Authorization` (instancia sin API key). |
 | `WIKIJS_INSECURE_TLS` | no | `true` | Aceptar certificado TLS autofirmado del proxy. |
 | `EMBEDDINGS_BASE_URL` | **sí** | — | URL base del servidor de embeddings externo (`<base>/embeddings`). |
 | `EMBEDDINGS_API_KEY` | no | `no-key` | API key (llama.cpp la ignora). |
@@ -137,7 +137,7 @@ Copia [`.env.example`](.env.example) a `.env` y rellena los valores **requeridos
 ```bash
 # 1. Configura el entorno
 cp .env.example .env
-#    -> rellena WIKIJS_TOKEN (token admin) y MCP_TOKEN (bearer seguro)
+#    -> rellena MCP_TOKEN (bearer seguro); WIKIJS_TOKEN solo si la instancia usa API key
 
 # 2. Sube el servicio (build + start)
 docker compose up -d --build
