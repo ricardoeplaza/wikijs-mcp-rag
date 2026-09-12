@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# --- Stage 1: build (TypeScript -> dist/) ---
+# --- Build stage (TypeScript -> dist/) ---
 FROM node:20-alpine AS build
 WORKDIR /app
 # Build toolchain in case better-sqlite3/sqlite-vec need to compile for musl.
@@ -11,7 +11,7 @@ COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN npm run build && npm prune --omit=dev
 
-# --- Stage 2: production ---
+# --- Production stage ---
 # Fallback if better-sqlite3 fails to compile on Alpine: switch both stages to
 # node:20-bookworm-slim and replace the apk line with: apt-get update && apt-get install -y python3 make g++
 FROM node:20-alpine

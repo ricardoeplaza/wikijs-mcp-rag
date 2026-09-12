@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { chunkMarkdown } from '../../src/rag/chunker.js';
 
-describe('chunkMarkdown (port of POC chunkTextMarkdown)', () => {
+describe('chunkMarkdown (markdown section-aware chunking)', () => {
   it('splits a document into one chunk per H1/H2 section with heading and level', () => {
     const md = [
       '# Intro',
@@ -158,7 +158,7 @@ describe('chunkMarkdown (port of POC chunkTextMarkdown)', () => {
     expect(chunkMarkdown('# Only a heading')).toEqual([]);
   });
 
-  it('uses POC defaults (maxChars 800, overlap 100) when no options are given', () => {
+  it('uses default limits (maxChars 800, overlap 100) when no options are given', () => {
     // Five ~192-char paragraphs: the first four pack into one chunk (< 800),
     // the fifth overflows → 2 chunks with the default overlap of 100 applied.
     const para = (n: number) => `Paragraph ${n} ` + 'x'.repeat(180);
