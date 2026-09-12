@@ -2,13 +2,15 @@
  * Wiki.js 2.5.314 GraphQL operations.
  *
  * All operations use VARIABLES (never inline interpolation). The real endpoint is
- * `${WIKIJS_BASE_URL}/api/graphql` (NOT `/graphql`).
+ * `${WIKIJS_BASE_URL}/graphql` (site root + `/graphql`, no `/api` prefix).
  *
- * Schema notes (verified):
+ * Schema notes (verified against live introspection):
  * - `pages.list(limit, orderBy)` returns a FLAT array (no `nodes`/`total`).
- * - Page mutations use an input object and return `{ responseResult, page }`.
- * - `pages.delete` returns a `ResponseResult` directly.
- * - There is NO `render` nor `deletePage`. Publish = `update(input: { id, isPublished: true })`.
+ * - Page mutations take FLAT arguments (there is NO `PageInput` type).
+ *   - `create(...)` / `update(id, ...)` return `{ responseResult, page }`.
+ *   - `delete(id)` takes only `id` (NO `purge`) and returns `{ responseResult }`.
+ * - `responseResult` is a `ResponseStatus { succeeded, errorCode, slug, message }`.
+ * - Publish = `update(id, isPublished: true)`. A separate `render(id)` op also exists.
  */
 
 export const GetPage = /* GraphQL */ `
@@ -73,11 +75,32 @@ export const SearchPages = /* GraphQL */ `
 `;
 
 export const CreatePage = /* GraphQL */ `
-  mutation CreatePage($input: PageInput!) {
+  mutation CreatePage(
+    $content: String!
+    $description: String!
+    $editor: String!
+    $isPublished: Boolean!
+    $isPrivate: Boolean!
+    $locale: String!
+    $path: String!
+    $tags: [String]!
+    $title: String!
+  ) {
     pages {
-      create(input: $input) {
+      create(
+        content: $content
+        description: $description
+        editor: $editor
+        isPublished: $isPublished
+        isPrivate: $isPrivate
+        locale: $locale
+        path: $path
+        tags: $tags
+        title: $title
+      ) {
         responseResult {
           succeeded
+          errorCode
           message
         }
         page {
@@ -91,11 +114,12 @@ export const CreatePage = /* GraphQL */ `
 `;
 
 export const UpdatePage = /* GraphQL */ `
-  mutation UpdatePage($input: PageInput!) {
+  mutation UpdatePage($id: Int!, $content: String, $description: String, $isPublished: Boolean, $title: String, $tags: [String]) {
     pages {
-      update(input: $input) {
+      update(id: $id, content: $content, description: $description, isPublished: $isPublished, title: $title, tags: $tags) {
         responseResult {
           succeeded
+          errorCode
           message
         }
         page {
@@ -109,14 +133,36 @@ export const UpdatePage = /* GraphQL */ `
   }
 `;
 
-export const DeletePage = /* GraphQL */ `
-  mutation DeletePage($id: Int!, $purge: Boolean) {
+/**
+ * Fetches a page's full editable state in one request (content + metadata + tags).
+ * Used internally by {@link WikiClient.getFullState} before any update/publish,
+ * because Wiki.js's `update` mutation requires a non-empty content and crashes
+ * if `tags` is omitted (model does `tags.map()` without null-check).
+ */
+export const GetPageFull = /* GraphQL */ `
+  query GetPageFull($id: Int!) {
     pages {
-      delete(id: $id, purge: $purge) {
-        succeeded
-        errorCode
-        message
-        slug
+      single(id: $id) {
+        id
+        title
+        description
+        isPublished
+        content
+        tags { tag }
+      }
+    }
+  }
+`;
+
+export const DeletePage = /* GraphQL */ `
+  mutation DeletePage($id: Int!) {
+    pages {
+      delete(id: $id) {
+        responseResult {
+          succeeded
+          errorCode
+          message
+        }
       }
     }
   }
@@ -169,24 +215,49 @@ export const ListGroups = /* GraphQL */ `
 `;
 
 export const CreateUser = /* GraphQL */ `
-  mutation CreateUser($input: UserInput!) {
+  mutation CreateUser(
+    $email: String!
+    $name: String!
+    $passwordRaw: String
+    $providerKey: String!
+    $groups: [Int]!
+    $mustChangePassword: Boolean
+    $sendWelcomeEmail: Boolean
+  ) {
     users {
-      create(input: $input) {
-        succeeded
-        errorCode
-        message
+      create(
+        email: $email
+        name: $name
+        passwordRaw: $passwordRaw
+        providerKey: $providerKey
+        groups: $groups
+        mustChangePassword: $mustChangePassword
+        sendWelcomeEmail: $sendWelcomeEmail
+      ) {
+        responseResult {
+          succeeded
+          errorCode
+          message
+        }
+        user {
+          id
+          name
+          email
+        }
       }
     }
   }
 `;
 
 export const UpdateUser = /* GraphQL */ `
-  mutation UpdateUser($id: Int!, $input: UserInput!) {
+  mutation UpdateUser($id: Int!, $email: String, $name: String, $newPassword: String) {
     users {
-      update(id: $id, input: $input) {
-        succeeded
-        errorCode
-        message
+      update(id: $id, email: $email, name: $name, newPassword: $newPassword) {
+        responseResult {
+          succeeded
+          errorCode
+          message
+        }
       }
     }
   }
@@ -196,6 +267,7 @@ export const UpdateUser = /* GraphQL */ `
 export const queries = {
   GetPage,
   GetPageContent,
+  GetPageFull,
   ListPages,
   SearchPages,
   CreatePage,

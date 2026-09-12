@@ -186,12 +186,35 @@ describe('registerPageTools (Etapa 4a)', () => {
     }
   });
 
+  it('create_page rejects a description longer than 255 chars (DB limit)', async () => {
+    const { client, fns, close } = await setup();
+    try {
+      const args = { path: '/nueva', title: 'Nueva', content: '# Hola', description: 'x'.repeat(256) };
+      const result = await client.callTool({ name: 'create_page', arguments: args });
+      expect(fns.createPage).not.toHaveBeenCalled();
+      expect(isErrorOf(result)).toBe(true);
+    } finally {
+      await close();
+    }
+  });
+
   it('update_page calls wiki.updatePage(id, input) without the id in the input', async () => {
     const { client, fns, close } = await setup();
     try {
       const result = await client.callTool({ name: 'update_page', arguments: { id: 7, content: 'nuevo contenido', isPublished: false } });
       expect(fns.updatePage).toHaveBeenCalledWith(7, { content: 'nuevo contenido', isPublished: false });
       expect(JSON.parse(textOf(result))).toEqual({ ...publishedPage, id: 7 });
+    } finally {
+      await close();
+    }
+  });
+
+  it('update_page forwards tags to wiki.updatePage (replace-all)', async () => {
+    const { client, fns, close } = await setup();
+    try {
+      const result = await client.callTool({ name: 'update_page', arguments: { id: 7, tags: ['a', 'b'] } });
+      expect(fns.updatePage).toHaveBeenCalledWith(7, { tags: ['a', 'b'] });
+      expect(isErrorOf(result)).toBe(false);
     } finally {
       await close();
     }

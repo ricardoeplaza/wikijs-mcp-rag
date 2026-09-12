@@ -76,6 +76,8 @@ export const updatePageInputSchema = z
     isPublished: z.boolean().optional(),
     title: z.string().optional(),
     description: z.string().optional(),
+    /** Full desired tag list (replace-all semantics). Omitted = keep current tags. */
+    tags: z.array(z.string()).optional(),
   })
   .passthrough();
 

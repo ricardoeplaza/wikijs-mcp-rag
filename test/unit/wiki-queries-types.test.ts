@@ -18,6 +18,7 @@ type OpName = keyof typeof queriesModule.queries;
 const QUERY_ROOTS: Record<OpName, string> = {
   GetPage: 'pages',
   GetPageContent: 'pages',
+  GetPageFull: 'pages',
   ListPages: 'pages',
   SearchPages: 'pages',
   CreatePage: 'pages',

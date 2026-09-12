@@ -117,7 +117,7 @@ function partialToWikiPage(
 /**
  * Wiki.js GraphQL client (stage 3b).
  *
- * - Talks to `${baseUrl}/api/graphql` with `Authorization: Bearer <token>`.
+ * - Talks to `${baseUrl}/graphql` with `Authorization: Bearer <token>`.
  * - Accepts self-signed TLS when `insecureTls` is set (`WIKIJS_INSECURE_TLS`).
  * - The HTTP layer is injectable via `options.requestImpl` for unit tests (no network).
  */
@@ -135,7 +135,7 @@ export class WikiClient {
 
   /** Builds the `graphql-request` client for the production path. */
   private buildClient(config: WikiClientConfig): GraphQLClient {
-    const endpoint = `${config.baseUrl.replace(/\/+$/, '')}/api/graphql`;
+    const endpoint = `${config.baseUrl.replace(/\/+$/, '')}/graphql`;
     const requestConfig: {
       method: 'POST';
       headers: Record<string, string>;
@@ -217,6 +217,40 @@ export class WikiClient {
 
   // --- Pages: writes ---
 
+  /**
+   * Fetches the full editable state of a page (content + metadata + tags) in a
+   * single request.
+   *
+   * Wiki.js's `update` mutation is NOT a partial patch: it always requires a
+   * non-empty `content`, sets `isPublished` to false when omitted, and crashes
+   * with "Cannot read properties of undefined (reading 'map')" if `tags` is not
+   * provided (the model calls `tags.map()` without a null-check). So before any
+   * update we must read the current state and merge the requested changes on top.
+   */
+  private async getFullState(id: number): Promise<{ content: string; description: string; title: string; isPublished: boolean; tags: string[] }> {
+    const data = await this.execute<{
+      pages: {
+        single: {
+          id: number;
+          title: string;
+          description: string | null;
+          isPublished: boolean;
+          content: string | null;
+          tags: { tag: string }[] | null;
+        } | null;
+      };
+    }>(queries.GetPageFull, { id });
+    const p = data.pages.single;
+    if (p == null) throw new Error(`Wiki page ${id} not found`);
+    return {
+      content: p.content ?? '',
+      description: p.description ?? '',
+      title: p.title,
+      isPublished: p.isPublished,
+      tags: (p.tags ?? []).map((t) => t.tag),
+    };
+  }
+
   async createPage(input: CreatePageInput): Promise<WikiPage> {
     const parsed = createPageInputSchema.parse(input);
     const pageInput = {
@@ -233,7 +267,7 @@ export class WikiClient {
     };
     const data = await this.execute<{ pages: { create: { responseResult: unknown; page: unknown } | null } }>(
       queries.CreatePage,
-      { input: pageInput },
+      pageInput,
     );
     if (data.pages.create == null) throw new Error(`Failed to create page "${parsed.path}": empty response`);
     const result = responseResultSchema.parse(data.pages.create.responseResult);
@@ -245,39 +279,64 @@ export class WikiClient {
 
   async updatePage(id: number, input: UpdatePageInput): Promise<WikiPage> {
     const parsed = updatePageInputSchema.parse(input);
+    // Merge the requested changes over the current full state (see getFullState).
+    const current = await this.getFullState(id);
     const data = await this.execute<{ pages: { update: { responseResult: unknown; page: unknown } | null } }>(
       queries.UpdatePage,
-      { input: { id, ...parsed } },
+      {
+        id,
+        content: parsed.content ?? current.content,
+        description: parsed.description ?? current.description,
+        isPublished: parsed.isPublished ?? current.isPublished,
+        title: parsed.title ?? current.title,
+        // Replace-all semantics (Wiki.js associateTags): the provided list becomes
+        // the complete new tag set; when omitted, keep the current tags.
+        tags: parsed.tags ?? current.tags,
+      },
     );
     if (data.pages.update == null) throw new Error(`Failed to update page ${id}: empty response`);
     const result = responseResultSchema.parse(data.pages.update.responseResult);
     if (!result.succeeded) {
       throw new Error(`Failed to update page ${id}: ${result.message ?? 'unknown error'}`);
     }
-    return partialToWikiPage(data.pages.update.page as Record<string, unknown>, parsed.isPublished ?? true);
+    return partialToWikiPage(data.pages.update.page as Record<string, unknown>, parsed.isPublished ?? current.isPublished);
   }
 
   async deletePage(id: number): Promise<void> {
-    await this.performDelete(id, false);
+    await this.performDelete(id);
   }
 
+  // NOTE: Wiki.js only exposes a single `delete(id)` mutation — there is no
+  // `purge` argument. Both `delete_page` and `force_delete_page` perform the
+  // same soft delete (the page becomes recoverable from trash, not hard-removed).
   async forceDeletePage(id: number): Promise<void> {
-    await this.performDelete(id, true);
+    await this.performDelete(id);
   }
 
-  private async performDelete(id: number, purge: boolean): Promise<void> {
-    const data = await this.execute<{ pages: { delete: unknown } }>(queries.DeletePage, { id, purge });
-    const result = responseResultSchema.parse(data.pages.delete);
+  private async performDelete(id: number): Promise<void> {
+    const data = await this.execute<{ pages: { delete: { responseResult: unknown } | null } }>(queries.DeletePage, { id });
+    if (data.pages.delete == null) {
+      throw new Error(`Failed to delete page ${id}: empty response`);
+    }
+    const result = responseResultSchema.parse(data.pages.delete.responseResult);
     if (!result.succeeded) {
       throw new Error(`Failed to delete page ${id}: ${result.message ?? 'unknown error'}`);
     }
   }
 
-  /** Publishes a page. There is no `render` op: publishing = `update(input: { id, isPublished: true })`. */
+  /** Publishes a page by re-saving its full state with `isPublished: true`. */
   async publishPage(id: number): Promise<WikiPage> {
+    const current = await this.getFullState(id);
     const data = await this.execute<{ pages: { update: { responseResult: unknown; page: unknown } | null } }>(
       queries.UpdatePage,
-      { input: { id, isPublished: true } },
+      {
+        id,
+        content: current.content,
+        description: current.description,
+        isPublished: true,
+        title: current.title,
+        tags: current.tags,
+      },
     );
     if (data.pages.update == null) throw new Error(`Failed to publish page ${id}: empty response`);
     const result = responseResultSchema.parse(data.pages.update.responseResult);
@@ -321,8 +380,14 @@ export class WikiClient {
       mustChangePassword: false,
       sendWelcomeEmail: false,
     };
-    const data = await this.execute<{ users: { create: unknown } }>(queries.CreateUser, { input: userInput });
-    const result = responseResultSchema.parse(data.users.create);
+    const data = await this.execute<{ users: { create: { responseResult: unknown; user: unknown } | null } }>(
+      queries.CreateUser,
+      userInput,
+    );
+    if (data.users.create == null) {
+      throw new Error(`Failed to create user "${parsed.email}": empty response`);
+    }
+    const result = responseResultSchema.parse(data.users.create.responseResult);
     if (!result.succeeded) {
       throw new Error(`Failed to create user "${parsed.email}": ${result.message ?? 'unknown error'}`);
     }
@@ -332,10 +397,17 @@ export class WikiClient {
   async updateUser(id: number, input: UpdateUserInput): Promise<ResponseResult> {
     const parsed = updateUserInputSchema.parse(input);
     const { password, ...rest } = parsed;
-    const userInput: Record<string, unknown> = { ...rest };
-    if (password !== undefined) userInput.passwordRaw = password;
-    const data = await this.execute<{ users: { update: unknown } }>(queries.UpdateUser, { id, input: userInput });
-    const result = responseResultSchema.parse(data.users.update);
+    // The `update` mutation takes the new password under `newPassword` (not `passwordRaw`).
+    const variables: Record<string, unknown> = { id, ...rest };
+    if (password !== undefined) variables.newPassword = password;
+    const data = await this.execute<{ users: { update: { responseResult: unknown } | null } }>(
+      queries.UpdateUser,
+      variables,
+    );
+    if (data.users.update == null) {
+      throw new Error(`Failed to update user ${id}: empty response`);
+    }
+    const result = responseResultSchema.parse(data.users.update.responseResult);
     if (!result.succeeded) {
       throw new Error(`Failed to update user ${id}: ${result.message ?? 'unknown error'}`);
     }

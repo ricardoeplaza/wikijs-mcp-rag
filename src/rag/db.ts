@@ -39,6 +39,8 @@
  * vectors before storing/querying.
  */
 
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import Database from 'better-sqlite3';
 import { load as loadSqliteVec } from 'sqlite-vec';
 
@@ -131,6 +133,11 @@ export class RagDb {
     this.dims = options.dims;
 
     const file = options.file ?? ':memory:';
+    if (file !== ':memory:') {
+      // Ensure the parent directory exists (e.g. ./data/rag.db). No-op for bare
+      // filenames and for Docker, where /data is a pre-mounted volume.
+      mkdirSync(dirname(file), { recursive: true });
+    }
     this.db = new Database(file);
     // The extension must be loaded before the vec0 virtual table is created.
     loadSqliteVec(this.db);

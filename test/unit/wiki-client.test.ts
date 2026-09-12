@@ -89,8 +89,8 @@ describe('WikiClient (unit, mocked HTTP)', () => {
     });
     const page = await client.createPage({ path: '/new', title: 'New', content: '# c' });
     expect(page).toMatchObject({ id: 99, path: '/new', title: 'New' });
-    const sent = calls[0]!.variables as { input: Record<string, unknown> };
-    expect(sent.input).toEqual({
+    // The create mutation takes flat arguments (no `input` wrapper object).
+    expect(calls[0]!.variables).toEqual({
       path: '/new',
       title: 'New',
       content: '# c',
@@ -110,34 +110,70 @@ describe('WikiClient (unit, mocked HTTP)', () => {
     await expect(client.createPage({ path: '/x', title: 'X', content: 'c' })).rejects.toThrow(/path exists/);
   });
 
-  it('updatePage sends { id, ...input } and reflects isPublished in the result', async () => {
+  it('updatePage merges changes over the current state and saves the full page', async () => {
     const updated = { id: 6, path: '/p6', title: 'P6', updatedAt: '2024-02-01T00:00:00.000Z' };
     const { client, calls } = buildClient({
+      GetPageFull: { pages: { single: { id: 6, title: 'Title 6', description: 'desc', isPublished: true, content: 'old', tags: [] } } },
       UpdatePage: { pages: { update: { responseResult: { succeeded: true }, page: updated } } },
     });
     const page = await client.updatePage(6, { content: 'new', isPublished: false });
-    expect(calls[0]!.variables).toEqual({ input: { id: 6, content: 'new', isPublished: false } });
+    // Wiki.js requires the FULL state, so the update call carries current values merged with the change.
+    const updateCall = calls.find((c) => c.query === queries.UpdatePage)!;
+    expect(updateCall.variables).toEqual({
+      id: 6,
+      content: 'new', // from input
+      description: 'desc', // from current state
+      isPublished: false, // from input
+      title: 'Title 6', // from current state
+      tags: [], // from current state
+    });
     expect(page).toMatchObject({ id: 6, isPublished: false });
   });
 
-  it('deletePage uses purge:false and forceDeletePage uses purge:true', async () => {
-    const ok = { succeeded: true };
-    const a = buildClient({ DeletePage: { pages: { delete: ok } } });
-    await a.client.deletePage(5);
-    expect(a.calls[0]!.variables).toEqual({ id: 5, purge: false });
-
-    const b = buildClient({ DeletePage: { pages: { delete: ok } } });
-    await b.client.forceDeletePage(5);
-    expect(b.calls[0]!.variables).toEqual({ id: 5, purge: true });
+  it('updatePage replaces the current tags when input.tags is provided', async () => {
+    const updated = { id: 6, path: '/p6', title: 'P6' };
+    const { client, calls } = buildClient({
+      GetPageFull: { pages: { single: { id: 6, title: 'Title 6', description: 'desc', isPublished: true, content: 'old', tags: ['a', 'b'] } } },
+      UpdatePage: { pages: { update: { responseResult: { succeeded: true }, page: updated } } },
+    });
+    await client.updatePage(6, { tags: ['c'] });
+    const updateCall = calls.find((c) => c.query === queries.UpdatePage)!;
+    expect(updateCall.variables).toEqual({
+      id: 6,
+      content: 'old', // from current state
+      description: 'desc', // from current state
+      isPublished: true, // from current state
+      title: 'Title 6', // from current state
+      tags: ['c'], // from input (replace-all semantics)
+    });
   });
 
-  it('publishPage calls UpdatePage with isPublished:true', async () => {
+  it('deletePage and forceDeletePage both call delete(id) (no purge arg in the schema)', async () => {
+    const ok = { pages: { delete: { responseResult: { succeeded: true } } } };
+    const a = buildClient({ DeletePage: ok });
+    await a.client.deletePage(5);
+    expect(a.calls[0]!.variables).toEqual({ id: 5 });
+
+    const b = buildClient({ DeletePage: ok });
+    await b.client.forceDeletePage(5);
+    expect(b.calls[0]!.variables).toEqual({ id: 5 });
+  });
+
+  it('publishPage re-saves the full state with isPublished:true', async () => {
     const { client, calls } = buildClient({
+      GetPageFull: { pages: { single: { id: 3, title: 'Title 3', description: 'desc', isPublished: false, content: 'body', tags: [] } } },
       UpdatePage: { pages: { update: { responseResult: { succeeded: true }, page: { id: 3, path: '/p3', title: 'P3' } } } },
     });
     await client.publishPage(3);
-    expect(calls[0]!.query).toBe(queries.UpdatePage);
-    expect(calls[0]!.variables).toEqual({ input: { id: 3, isPublished: true } });
+    const updateCall = calls.find((c) => c.query === queries.UpdatePage)!;
+    expect(updateCall.variables).toEqual({
+      id: 3,
+      content: 'body',
+      description: 'desc',
+      isPublished: true,
+      title: 'Title 3',
+      tags: [],
+    });
   });
 
   it('getPageStatus returns a PageStatus including isPublished', async () => {
@@ -166,28 +202,28 @@ describe('WikiClient (unit, mocked HTTP)', () => {
     expect(await client.listGroups()).toEqual([g]);
   });
 
-  it('createUser builds UserInput (passwordRaw + default groups) and returns the result', async () => {
+  it('createUser builds flat args (passwordRaw + default groups) and returns the result', async () => {
     const res = { succeeded: true, message: 'ok' };
-    const { client, calls } = buildClient({ CreateUser: { users: { create: res } } });
+    const { client, calls } = buildClient({
+      CreateUser: { users: { create: { responseResult: res, user: { id: 42 } } } },
+    });
     expect(await client.createUser({ name: 'C', email: 'c@e.com', password: 'secret' })).toEqual(res);
     expect(calls[0]!.variables).toEqual({
-      input: {
-        name: 'C',
-        email: 'c@e.com',
-        providerKey: 'local',
-        passwordRaw: 'secret',
-        groups: [2],
-        mustChangePassword: false,
-        sendWelcomeEmail: false,
-      },
+      name: 'C',
+      email: 'c@e.com',
+      providerKey: 'local',
+      passwordRaw: 'secret',
+      groups: [2],
+      mustChangePassword: false,
+      sendWelcomeEmail: false,
     });
   });
 
-  it('updateUser maps password to passwordRaw and sends { id, input }', async () => {
+  it('updateUser maps password to newPassword and sends flat { id, ...fields }', async () => {
     const res = { succeeded: true };
-    const { client, calls } = buildClient({ UpdateUser: { users: { update: res } } });
+    const { client, calls } = buildClient({ UpdateUser: { users: { update: { responseResult: res } } } });
     await client.updateUser(8, { email: 'new@e.com', password: 'np' });
-    expect(calls[0]!.variables).toEqual({ id: 8, input: { email: 'new@e.com', passwordRaw: 'np' } });
+    expect(calls[0]!.variables).toEqual({ id: 8, email: 'new@e.com', newPassword: 'np' });
   });
 
   it('propagates HTTP/GraphQL errors from the request layer', async () => {
@@ -227,27 +263,39 @@ describe('WikiClient (unit, mocked HTTP)', () => {
   });
 
   it('updatePage throws on an empty update response', async () => {
-    const { client } = buildClient({ UpdatePage: { pages: { update: null } } });
+    const { client } = buildClient({
+      GetPageFull: { pages: { single: { id: 6, title: 'Title 6', description: 'desc', isPublished: true, content: 'old', tags: [] } } },
+      UpdatePage: { pages: { update: null } },
+    });
     await expect(client.updatePage(6, { content: 'c' })).rejects.toThrow(/empty response/);
   });
 
   it('publishPage throws on an empty update response', async () => {
-    const { client } = buildClient({ UpdatePage: { pages: { update: null } } });
+    const { client } = buildClient({
+      GetPageFull: { pages: { single: { id: 3, title: 'Title 3', description: 'desc', isPublished: false, content: 'body', tags: [] } } },
+      UpdatePage: { pages: { update: null } },
+    });
     await expect(client.publishPage(3)).rejects.toThrow(/empty response/);
   });
 
   it('deletePage throws when the delete responseResult fails', async () => {
-    const { client } = buildClient({ DeletePage: { pages: { delete: { succeeded: false, message: 'locked' } } } });
+    const { client } = buildClient({
+      DeletePage: { pages: { delete: { responseResult: { succeeded: false, message: 'locked' } } } },
+    });
     await expect(client.deletePage(5)).rejects.toThrow(/locked/);
   });
 
   it('createUser throws when the create user responseResult fails', async () => {
-    const { client } = buildClient({ CreateUser: { users: { create: { succeeded: false, message: 'dup email' } } } });
+    const { client } = buildClient({
+      CreateUser: { users: { create: { responseResult: { succeeded: false, message: 'dup email' }, user: null } } },
+    });
     await expect(client.createUser({ name: 'C', email: 'c@e.com', password: 's' })).rejects.toThrow(/dup email/);
   });
 
   it('updateUser throws when the update user responseResult fails', async () => {
-    const { client } = buildClient({ UpdateUser: { users: { update: { succeeded: false, message: 'nope' } } } });
+    const { client } = buildClient({
+      UpdateUser: { users: { update: { responseResult: { succeeded: false, message: 'nope' } } } },
+    });
     await expect(client.updateUser(8, { email: 'x@e.com' })).rejects.toThrow(/nope/);
   });
 

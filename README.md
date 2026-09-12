@@ -104,7 +104,7 @@ Copia [`.env.example`](.env.example) a `.env` y rellena los valores **requeridos
 
 | Variable | Requerida | Default | Descripción |
 |---|---|---|---|
-| `WIKIJS_BASE_URL` | no | `http://wikijs:3000` | URL base de Wiki.js (endpoint real `<base>/api/graphql`). |
+| `WIKIJS_BASE_URL` | no | `http://wikijs:3000` | URL base de Wiki.js (endpoint real `<base>/graphql`). |
 | `WIKIJS_TOKEN` | no | `''` | Token admin de Wiki.js. Opcional: vacío ⇒ el cliente omite el header `Authorization` (instancia sin API key). |
 | `WIKIJS_INSECURE_TLS` | no | `true` | Aceptar certificado TLS autofirmado del proxy. |
 | `EMBEDDINGS_BASE_URL` | **sí** | — | URL base del servidor de embeddings externo (`<base>/embeddings`). |

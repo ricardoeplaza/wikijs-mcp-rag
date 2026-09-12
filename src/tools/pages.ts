@@ -102,15 +102,15 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
     'create_page',
     {
       description:
-        'Crea una página en Markdown y la publica. El cliente aplica defaults: locale "es", editor markdown, isPublished true.',
+        'Crea una página en Markdown y la publica. El cliente aplica defaults: locale "es", editor markdown, isPublished true. Límites de BD: path, title y description máx. 255 caracteres; cada tag máx. 255 (se normalizan a minúsculas).',
       inputSchema: z.object({
-        path: z.string().min(1),
-        title: z.string().min(1),
+        path: z.string().min(1).max(255),
+        title: z.string().min(1).max(255),
         content: z.string(),
         locale: z.string().optional(),
-        description: z.string().optional(),
+        description: z.string().max(255).optional(),
         isPrivate: z.boolean().optional(),
-        tags: z.array(z.string()).optional(),
+        tags: z.array(z.string().max(255)).optional(),
       }),
     },
     async (args) => {
@@ -127,13 +127,15 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
   server.registerTool(
     'update_page',
     {
-      description: 'Actualiza campos de una página existente (content, title, description, isPublished).',
+      description:
+        'Actualiza campos de una página existente (content, title, description, isPublished, tags). tags es OPCIONAL y usa semántica replace-all: la lista enviada sustituye COMPLETAMENTE las etiquetas actuales (normalizadas a minúsculas); usa [] para quitar todas. Si se omite, las etiquetas no cambian. Límites de BD: title y description máx. 255 caracteres; cada tag máx. 255.',
       inputSchema: z.object({
         id: z.number().int(),
         content: z.string().optional(),
         isPublished: z.boolean().optional(),
-        title: z.string().optional(),
-        description: z.string().optional(),
+        title: z.string().max(255).optional(),
+        description: z.string().max(255).optional(),
+        tags: z.array(z.string().max(255)).optional(),
       }),
     },
     async ({ id, ...input }) => {
