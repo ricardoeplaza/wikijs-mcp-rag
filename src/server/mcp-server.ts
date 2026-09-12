@@ -15,16 +15,16 @@ export interface McpServerDeps {
   wiki: WikiClient;
   /** Optional RAG stack. When present, the 4 RAG tools are registered too. */
   rag?: RagToolsDeps;
-  /** Optional sync hooks (Etapa 8a). When present, page CRUD tools fire background reindex/purge. */
+  /** Optional sync hooks. When present, page CRUD tools fire background reindex/purge. */
   sync?: SyncService;
 }
 
 /**
  * Creates a fresh McpServer with all tools registered.
  *
- * Etapa 7b: `ping` + the 17 CRUD tools (pages/users/groups) via
+ * Registers `ping` + the 17 CRUD tools (pages/users/groups) via
  * `registerAllTools`, and — when `deps.rag` is provided — the 4 RAG tools via
- * `registerRagTools`. Etapa 8a: `deps.sync` is forwarded to the page tools.
+ * `registerRagTools`. `deps.sync` is forwarded to the page tools.
  */
 export function createMcpServer(deps: McpServerDeps): McpServer {
   const server = new McpServer(SERVER_INFO);

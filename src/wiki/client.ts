@@ -115,7 +115,7 @@ function partialToWikiPage(
 }
 
 /**
- * Wiki.js GraphQL client (stage 3b).
+ * Wiki.js GraphQL client.
  *
  * - Talks to `${baseUrl}/graphql` with `Authorization: Bearer <token>`.
  * - Accepts self-signed TLS when `insecureTls` is set (`WIKIJS_INSECURE_TLS`).
@@ -184,9 +184,9 @@ export class WikiClient {
   /**
    * Returns the whole corpus in a SINGLE request using a high `limit`.
    *
-   * NOTE: no `offset` pagination is used. The corpus is small (~24 articles) and
-   * `pages.list(offset)` behavior has not been verified against the live instance,
-   * so we avoid depending on it (plan §8.3).
+   * No `offset` pagination is used: full-corpus reads intentionally go through
+   * this dedicated list operation instead of relying on `pages.list(offset)`
+   * pagination.
    */
   async listAllPages(): Promise<WikiPage[]> {
     return this.listPages(LIST_ALL_PAGES_LIMIT, 'TITLE');
@@ -198,9 +198,9 @@ export class WikiClient {
       { query: term },
     );
     const results = data.pages.search?.results ?? [];
-    // The SearchPages op (stage 3a) only selects `id, title, description, path, locale` —
+    // The SearchPages op only selects `id, title, description, path, locale` —
     // not publish state or timestamps. Those are defaulted so the result stays a uniform
-    // WikiPage[] for retrieval. Verify the real shape against the live instance in integration.
+    // WikiPage[] for retrieval.
     return results.map((raw, index) => {
       const r = raw as Record<string, unknown>;
       const id = Number(r.id);
@@ -260,7 +260,7 @@ export class WikiClient {
       editor: 'markdown',
       isPublished: true,
       isPrivate: parsed.isPrivate ?? false,
-      // CORRECTION of the fork bug (which used 'ru'): default locale is 'es'.
+      // Default locale is 'es'.
       locale: parsed.locale ?? 'es',
       description: parsed.description ?? '',
       tags: parsed.tags ?? [],

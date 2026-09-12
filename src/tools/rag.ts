@@ -51,7 +51,7 @@ export interface RagToolsDeps {
 }
 
 /**
- * Registers the 4 RAG tools (Etapa 7b) on an MCP server.
+ * Registers the 4 RAG tools on an MCP server.
  *
  * Same handler contract as pages.ts/users.ts: on success the payload is returned
  * as JSON in `content[0].text`; on failure `isError: true` with the error message,

@@ -91,7 +91,7 @@ function toConfig(data: z.infer<EnvSchema>): Config {
 /**
  * Loads and validates the environment configuration.
  *
- * D9 (MCP auth):
+ * MCP auth:
  * - MCP_TOKEN empty + MCP_ALLOW_NOAUTH=false -> throws (refuse to start).
  * - MCP_TOKEN empty + MCP_ALLOW_NOAUTH=true  -> dev mode with a loud warning.
  */

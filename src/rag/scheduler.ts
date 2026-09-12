@@ -1,5 +1,5 @@
 /**
- * RAG nightly full-reindex scheduler (Etapa 8b).
+ * RAG nightly full-reindex scheduler.
  *
  * Schedules a full-corpus `indexer.reindexAll()` once per day at the configured
  * `hour:minute` (default 03:00). This is the periodic safety net that rebuilds

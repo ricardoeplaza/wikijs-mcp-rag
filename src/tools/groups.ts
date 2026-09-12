@@ -14,7 +14,7 @@ function errorResult(err: unknown) {
 }
 
 /**
- * Registers the group tools (Etapa 4b) on an MCP server.
+ * Registers the group tools on an MCP server.
  * Same handler contract as pages.ts/users.ts.
  */
 export function registerGroupTools(server: McpServer, wiki: WikiClient): void {

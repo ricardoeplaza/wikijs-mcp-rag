@@ -1,5 +1,5 @@
 /**
- * RAG querier (Etapa 7a).
+ * RAG querier.
  *
  * Hybrid semantic + lexical search over a {@link RagDb}:
  *   query → `embeddings.embed([query])` → `db.searchByVector(qvec, max(limit*3, 10))`

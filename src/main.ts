@@ -39,13 +39,13 @@ export function createApp(config: Config, options: CreateAppOptions = {}): Fasti
 
   // Single shared WikiClient for the whole app. It is lazy: the constructor
   // only builds the HTTP client, no live connection happens until the first
-  // GraphQL call (the real endpoint wiring stays in the integration stage).
+  // GraphQL call.
   const wiki = new WikiClient(config);
 
-  // RAG stack (Etapa 7b). All local/lazy at construction: RagDb opens the SQLite
+  // RAG stack. All local/lazy at construction: RagDb opens the SQLite
   // file (no network), EmbeddingsClient only stores options, Indexer/Querier just
   // hold references. checkIntegrity surfaces an actionable error on a dims mismatch
-  // (rebuild is Etapa 8/9) instead of corrupting search results later.
+  // (fix: delete the RAG DB file and reindex) instead of corrupting search results later.
   const ragDb = new RagDb({ file: config.ragDbPath, dims: config.embeddingsDim });
   ragDb.checkIntegrity(config.embeddingsDim);
   const embeddings = new EmbeddingsClient({
@@ -57,11 +57,11 @@ export function createApp(config: Config, options: CreateAppOptions = {}): Fasti
   const querier = new Querier({ db: ragDb, embeddings });
   const rag = { querier, indexer };
 
-  // Etapa 8a: fire-and-forget RAG sync hooks for the page CRUD tools. Failures
+  // Fire-and-forget RAG sync hooks for the page CRUD tools. Failures
   // are logged by the SyncService and never propagate to tool responses.
   const sync = new SyncService({ indexer, logger });
 
-  // Etapa 8b: background RAG resync. The Poller reconciles index vs wiki every
+  // Background RAG resync. The Poller reconciles index vs wiki every
   // `syncPollIntervalMs` (incremental, hash-based); the Scheduler runs a full
   // reindex nightly at `nightlyResyncHour`. Both are built here but only started
   // when requested; teardown is centralized in the onClose hook below.

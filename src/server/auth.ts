@@ -4,7 +4,7 @@ import type { Config } from '../config.js';
 import { logger } from '../logger.js';
 
 /**
- * Bearer-token middleware for the MCP endpoints (D9).
+ * Bearer-token middleware for the MCP endpoints.
  *
  * - MCP_TOKEN set: `Authorization: Bearer <token>` is required on /mcp, /sse and
  *   /message. On GET /sse the token may also be passed as `?token=` (fallback for

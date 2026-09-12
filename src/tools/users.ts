@@ -14,7 +14,7 @@ function errorResult(err: unknown) {
 }
 
 /**
- * Registers the 4 user management tools (Etapa 4b) on an MCP server.
+ * Registers the 4 user management tools on an MCP server.
  *
  * Same handler contract as pages.ts: on success the Wiki.js payload is returned
  * as JSON in `content[0].text`; on failure `isError: true` with the error

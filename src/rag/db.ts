@@ -1,8 +1,7 @@
 /**
- * SQLite + sqlite-vec storage for the RAG index (Etapa 6a).
+ * SQLite + sqlite-vec storage for the RAG index.
  *
- * Single database file with a 3-table schema (plan §7, shaped by the verified
- * sqlite-vec recipe for this environment):
+ * Single database file with a 3-table schema:
  * - `meta`:       key/value store of the active index parameters. The dims used to build
  *                 the vec0 table are persisted as `embedding_dims` (written once, on first
  *                 creation; never overwritten on reopen).
@@ -17,9 +16,9 @@
  *
  * `chunk_id` alignment: the vector is inserted FIRST into `chunks_vec` leaving the rowid
  * auto-assigned; `info.lastInsertRowid` is then used as the explicit `chunk_id` when
- * inserting the content row into `chunks`. (In this environment a plain explicit-rowid
- * insert into vec0 fails with "Only integers are allows for primary key values", so the
- * plain auto-rowid path is the one that works and is kept.)
+ * inserting the content row into `chunks`. The auto-rowid path keeps the two tables
+ * aligned without pre-computing ids and avoids relying on an explicit-rowid insert
+ * into the vec0 table.
  *
  * Foreign keys are declared (`chunks.page_id REFERENCES pages(page_id) ON DELETE CASCADE`)
  * but NOT enforced: `PRAGMA foreign_keys` is left OFF (the better-sqlite3 default) because
@@ -269,7 +268,7 @@ export class RagDb {
     return rows.map((row) => row.page_id);
   }
 
-  /** Alias of {@link listIndexedPageIds} (plan §7 name, used by the poller/resync). */
+  /** Alias of {@link listIndexedPageIds} (used by the poller/resync). */
   listAllPageIds(): number[] {
     return this.listIndexedPageIds();
   }

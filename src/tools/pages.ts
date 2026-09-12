@@ -17,13 +17,13 @@ function errorResult(err: unknown) {
 const onlyPublished = (pages: { isPublished: boolean }[]) => pages.filter((page) => page.isPublished);
 
 /**
- * Registers the 12 page CRUD tools (Etapa 4a) on an MCP server.
+ * Registers the 12 page CRUD tools on an MCP server.
  *
  * Every tool follows the same contract: on success it returns the Wiki.js payload
  * as JSON in `content[0].text`; on failure it returns `isError: true` with the
  * error message, so a thrown `WikiClient` error never crashes the transport.
  *
- * Etapa 8a: after each successful MUTATING operation (create/update/publish/
+ * After each successful MUTATING operation (create/update/publish/
  * delete/force_delete) the optional `sync` hook is fired WITHOUT awaiting, so
  * RAG reindex/purge runs in the background and never affects the tool response.
  */

@@ -7,7 +7,7 @@ import { createMcpServer } from './mcp-server.js';
 import type { RagToolsDeps } from '../tools/rag.js';
 
 /**
- * GET /sse + POST /message?sessionId=... — legacy MCP SSE transport (plan §10.2/§10.3).
+ * GET /sse + POST /message?sessionId=... — legacy MCP SSE transport.
  *
  * One McpServer per SSE connection, kept in an in-memory map keyed by the
  * transport session id. Entries are removed when the SSE connection closes.

@@ -1,5 +1,5 @@
 /**
- * RAG incremental resync poller (Etapa 8b).
+ * RAG incremental resync poller.
  *
  * Periodically reconciles the RAG index with the live Wiki.js corpus so that
  * changes made OUTSIDE the MCP tools (direct edits in the Wiki.js UI) are

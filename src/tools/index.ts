@@ -7,9 +7,10 @@ import { registerGroupTools } from './groups.js';
 
 /**
  * Registers every CRUD tool family (12 pages + 4 users + 1 group = 17 tools)
- * on an MCP server. The RAG tools (Etapa 5) will be added here too.
+ * on an MCP server. The RAG tools are registered separately by the MCP server
+ * setup (`createMcpServer`) when RAG deps are provided.
  *
- * Etapa 8a: the optional `sync` hook is forwarded to the page tools so their
+ * The optional `sync` hook is forwarded to the page tools so their
  * mutating operations can trigger background reindex/purge.
  */
 export function registerAllTools(server: McpServer, wiki: WikiClient, sync?: SyncService): void {

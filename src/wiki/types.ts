@@ -54,7 +54,7 @@ export const responseResultSchema = z.object({
 
 export type ResponseResult = z.infer<typeof responseResultSchema>;
 
-// --- Client inputs (for the client methods, plan §8.3) ---
+// --- Client inputs (for the client methods) ---
 
 /** Input for creating a page. */
 export const createPageInputSchema = z.object({

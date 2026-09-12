@@ -1,16 +1,14 @@
 /**
- * Markdown chunker (Etapa 5a).
+ * Markdown chunker.
  *
- * Port of the POC algorithm (`mcp-rag-wikijs-poc` → `packages/shared/src/utils/index.ts`,
- * `chunkTextMarkdown`) extended with H1/H2 section awareness:
+ * Chunking algorithm for Markdown documents, with H1/H2 section awareness:
  *
  * 1. The document is split into a preamble (text before the first heading) and
  *    sections, one per H1 (`# `) / H2 (`## `) heading. Deeper headings (H3+) do
  *    not start a new section; they stay inside the enclosing one.
  * 2. Each section is packed greedily into chunks of at most `maxChars` characters,
- *    using paragraphs (blank-line separated blocks) as the atomic unit — the same
- *    packing loop as the POC. A part that alone exceeds `maxChars` is hard-split
- *    so no chunk ever grows far beyond the limit.
+ *    using paragraphs (blank-line separated blocks) as the atomic unit. A part that
+ *    alone exceeds `maxChars` is hard-split so no chunk ever grows far beyond the limit.
  * 3. If `overlap > 0`, every chunk after the first starts with the last `overlap`
  *    characters of the previous chunk, providing cross-chunk context for retrieval.
  */
@@ -22,9 +20,9 @@ export interface Chunk {
 }
 
 export interface ChunkOptions {
-  /** Maximum target size per chunk in characters (default 800, as in the POC). */
+  /** Maximum target size per chunk in characters (default 800). */
   maxChars?: number;
-  /** Characters repeated from the end of the previous chunk at the start of the next one (default 100, as in the POC). */
+  /** Characters repeated from the end of the previous chunk at the start of the next one (default 100). */
   overlap?: number;
 }
 
@@ -76,7 +74,7 @@ function splitSections(text: string): { preamble: string; sections: Section[] } 
   return { preamble, sections };
 }
 
-/** Splits a text into paragraphs (blocks separated by one or more blank lines), POC-style. */
+/** Splits a text into paragraphs (blocks separated by one or more blank lines). */
 function toParagraphs(text: string): string[] {
   return text
     .split(/\n{2,}/g)
@@ -96,8 +94,8 @@ function splitOversized(part: string, maxChars: number): string[] {
 
 /**
  * Greedily packs parts into chunks of at most `maxChars` characters, keeping
- * parts intact (the POC packing loop). A part that does not fit starts a new
- * chunk; the previous one is flushed first.
+ * parts intact. A part that does not fit starts a new chunk; the previous one
+ * is flushed first.
  */
 function packParts(parts: string[], maxChars: number): string[] {
   const chunks: string[] = [];

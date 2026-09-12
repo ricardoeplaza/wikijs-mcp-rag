@@ -1,5 +1,5 @@
 /**
- * RAG indexer (Etapa 6b).
+ * RAG indexer.
  *
  * Orchestrates the indexing pipeline over a {@link RagDb}:
  *   page content → `chunkMarkdown` → ONE batched `embeddings.embed()` call →

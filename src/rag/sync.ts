@@ -1,5 +1,5 @@
 /**
- * RAG sync hooks (Etapa 8a).
+ * RAG sync hooks.
  *
  * Fire-and-forget bridge between the page CRUD tools and the {@link Indexer}:
  * after a successful create/update/publish/delete, the tools call

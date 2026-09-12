@@ -1,5 +1,5 @@
 /**
- * OpenAI-compatible embeddings client (Etapa 5b).
+ * OpenAI-compatible embeddings client.
  *
  * Talks to a llama.cpp `/v1/embeddings` endpoint (OpenAI-compatible API):
  * `POST ${baseUrl}/embeddings` with body `{ model, input: string[] }`, reading

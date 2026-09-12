@@ -4,7 +4,7 @@
  * All operations use VARIABLES (never inline interpolation). The real endpoint is
  * `${WIKIJS_BASE_URL}/graphql` (site root + `/graphql`, no `/api` prefix).
  *
- * Schema notes (verified against live introspection):
+ * Schema notes:
  * - `pages.list(limit, orderBy)` returns a FLAT array (no `nodes`/`total`).
  * - Page mutations take FLAT arguments (there is NO `PageInput` type).
  *   - `create(...)` / `update(id, ...)` return `{ responseResult, page }`.
