@@ -1,11 +1,11 @@
 # =============================================================================
-# wikijs-mcp-rag — despliegue local (solo nuestro servicio)
+# wikijs-mcp-rag — local deployment (only our service)
 #
-# Wiki.js y el servidor de embeddings son EXTERNOS: no se definen aquí.
-# Apúntalos desde .env (WIKIJS_BASE_URL, EMBEDDINGS_BASE_URL).
+# Wiki.js and the embeddings server are EXTERNAL: they are not defined here.
+# Point to them from .env (WIKIJS_BASE_URL, EMBEDDINGS_BASE_URL).
 #
-# Uso:
-#   cp .env.example .env   # rellena MCP_TOKEN (WIKIJS_TOKEN solo si la instancia usa API key)
+# Usage:
+#   cp .env.example .env   # fill in MCP_TOKEN (WIKIJS_TOKEN only if the instance uses an API key)
 #   docker compose up -d --build
 # =============================================================================
 services:
@@ -13,22 +13,22 @@ services:
     build: .
     image: wikijs-mcp-rag:latest
     container_name: wikijs-mcp-rag
-    # Todas las variables de config.ts vienen de .env (ver .env.example).
+    # All config.ts variables come from .env (see .env.example).
     env_file:
       - .env
     environment:
-      # Ruta del SQLite dentro del contenedor, sobre el volumen persistente /data.
-      # Sobrescribe RAG_DB_PATH de .env para que sea correcta en Docker.
+      # SQLite path inside the container, on the persistent /data volume.
+      # Overrides RAG_DB_PATH from .env so it is correct under Docker.
       RAG_DB_PATH: /data/wikijs-rag.db
     ports:
-      # <host>:<contenedor>. El contenedor escucha siempre en 8000 (EXPOSE del Dockerfile).
+      # <host>:<container>. The container always listens on 8000 (EXPOSE in the Dockerfile).
       - "${MCP_PORT:-8000}:8000"
     volumes:
-      # Persistencia de la base SQLite (chunks + vectores) entre reinicios.
+      # SQLite database persistence (chunks + vectors) across restarts.
       - ./data:/data
     restart: unless-stopped
     healthcheck:
-      # GET /health no requiere auth y responde { status: 'ok' }.
+      # GET /health requires no auth and responds { status: 'ok' }.
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
