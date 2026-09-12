@@ -87,7 +87,7 @@ async function setup(): Promise<Harness> {
   };
 }
 
-describe('registerUserTools + registerGroupTools (Etapa 4b)', () => {
+describe('registerUserTools + registerGroupTools', () => {
   it('registers the 17 CRUD tools + ping', async () => {
     const { client, close } = await setup();
     try {
@@ -137,9 +137,9 @@ describe('registerUserTools + registerGroupTools (Etapa 4b)', () => {
     try {
       const result = await client.callTool({
         name: 'update_user',
-        arguments: { id: 7, email: 'nuevo@example.com', password: 'nueva' },
+        arguments: { id: 7, email: 'new@example.com', password: 'newpass' },
       });
-      expect(fns.updateUser).toHaveBeenCalledWith(7, { email: 'nuevo@example.com', password: 'nueva' });
+      expect(fns.updateUser).toHaveBeenCalledWith(7, { email: 'new@example.com', password: 'newpass' });
       expect(JSON.parse(textOf(result))).toEqual({ ...responseResult, message: 'updated 7' });
     } finally {
       await close();

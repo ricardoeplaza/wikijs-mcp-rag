@@ -23,7 +23,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('Scheduler (Etapa 8b, nightly full reindex)', () => {
+describe('Scheduler (nightly full reindex)', () => {
   it('runNightly delegates to reindexAll and logs a summary', async () => {
     const { indexer, reindexAll } = makeIndexerMock();
     const info = vi.fn();

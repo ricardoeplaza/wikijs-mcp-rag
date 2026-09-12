@@ -26,7 +26,7 @@ afterEach(() => {
   }
 });
 
-describe('RagDb (Etapa 6a, SQLite + sqlite-vec storage)', () => {
+describe('RagDb (SQLite + sqlite-vec storage)', () => {
   it('creates the §7 schema (meta, pages, chunks + idx_chunks_page, chunks_vec vec0) without indexing the vec0 table', () => {
     // Single controlled file-backed case: a raw reopen is needed to inspect sqlite_master.
     const file = makeTempFile();

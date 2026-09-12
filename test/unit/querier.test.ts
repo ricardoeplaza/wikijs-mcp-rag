@@ -41,7 +41,7 @@ function hit(chunkId: number, distance: number, content: string): RagSearchHit {
   };
 }
 
-describe('Querier (Etapa 7a, hybrid semantic + lexical search)', () => {
+describe('Querier (hybrid semantic + lexical search)', () => {
   it('search returns the top-`limit` candidates ordered by descending hybrid score', async () => {
     const query = 'alpha beta gamma';
     const candidates: RagSearchHit[] = [

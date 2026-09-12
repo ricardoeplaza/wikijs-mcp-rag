@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { chunkMarkdown } from '../../src/rag/chunker.js';
 
-describe('chunkMarkdown (Etapa 5a, port of POC chunkTextMarkdown)', () => {
+describe('chunkMarkdown (port of POC chunkTextMarkdown)', () => {
   it('splits a document into one chunk per H1/H2 section with heading and level', () => {
     const md = [
       '# Intro',

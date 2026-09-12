@@ -75,7 +75,7 @@ function makeClient(
   });
 }
 
-describe('EmbeddingsClient (Etapa 5b)', () => {
+describe('EmbeddingsClient', () => {
   it('returns one vector per input in the original order for a single batch', async () => {
     const mock = createMockFetch({ vectorLen: 4 });
     const client = makeClient(mock, { dims: 4 });

@@ -9,18 +9,18 @@ import type { WikiClient } from '../../src/wiki/client.js';
 
 const publishedPage = {
   id: 1,
-  path: '/uno',
-  title: 'Uno',
-  description: 'desc-uno',
+  path: '/one',
+  title: 'One',
+  description: 'desc-one',
   isPublished: true,
   updatedAt: '2024-01-02T00:00:00.000Z',
 };
 
 const draftPage = {
   id: 2,
-  path: '/dos',
-  title: 'Dos',
-  description: 'desc-dos',
+  path: '/two',
+  title: 'Two',
+  description: 'desc-two',
   isPublished: false,
   updatedAt: '2024-01-03T00:00:00.000Z',
 };
@@ -71,7 +71,7 @@ function makeWiki() {
         { ...publishedPage, id: 12, title: `${term} B` },
       ],
     ),
-    createPage: vi.fn(async (input: { path?: string }) => ({ ...publishedPage, id: 10, path: input.path ?? '/nuevo' })),
+    createPage: vi.fn(async (input: { path?: string }) => ({ ...publishedPage, id: 10, path: input.path ?? '/new' })),
     updatePage: vi.fn(async (id: number) => ({ ...publishedPage, id })),
     deletePage: vi.fn(async () => undefined),
     forceDeletePage: vi.fn(async () => undefined),
@@ -109,7 +109,7 @@ async function setup(options: SetupOptions = {}): Promise<Harness> {
   };
 }
 
-describe('registerPageTools (Etapa 4a)', () => {
+describe('registerPageTools', () => {
   it('registers exactly the 12 page tools', async () => {
     const { client, close } = await setup();
     try {
@@ -166,9 +166,9 @@ describe('registerPageTools (Etapa 4a)', () => {
   it('search_pages calls wiki.searchPages(query) and slices to limit', async () => {
     const { client, fns, close } = await setup();
     try {
-      const result = await client.callTool({ name: 'search_pages', arguments: { query: 'sol', limit: 1 } });
-      expect(fns.searchPages).toHaveBeenCalledWith('sol');
-      expect(JSON.parse(textOf(result))).toEqual([{ ...publishedPage, id: 11, title: 'sol A' }]);
+      const result = await client.callTool({ name: 'search_pages', arguments: { query: 'one', limit: 1 } });
+      expect(fns.searchPages).toHaveBeenCalledWith('one');
+      expect(JSON.parse(textOf(result))).toEqual([{ ...publishedPage, id: 11, title: 'one A' }]);
     } finally {
       await close();
     }
@@ -177,10 +177,10 @@ describe('registerPageTools (Etapa 4a)', () => {
   it('create_page forwards the input to wiki.createPage', async () => {
     const { client, fns, close } = await setup();
     try {
-      const args = { path: '/nueva', title: 'Nueva', content: '# Hola', locale: 'es', description: 'd', isPrivate: false, tags: ['a'] };
+      const args = { path: '/new', title: 'New', content: '# Hello', locale: 'es', description: 'd', isPrivate: false, tags: ['a'] };
       const result = await client.callTool({ name: 'create_page', arguments: args });
       expect(fns.createPage).toHaveBeenCalledWith(args);
-      expect(JSON.parse(textOf(result))).toEqual({ ...publishedPage, id: 10, path: '/nueva' });
+      expect(JSON.parse(textOf(result))).toEqual({ ...publishedPage, id: 10, path: '/new' });
     } finally {
       await close();
     }
@@ -189,7 +189,7 @@ describe('registerPageTools (Etapa 4a)', () => {
   it('create_page rejects a description longer than 255 chars (DB limit)', async () => {
     const { client, fns, close } = await setup();
     try {
-      const args = { path: '/nueva', title: 'Nueva', content: '# Hola', description: 'x'.repeat(256) };
+      const args = { path: '/new', title: 'New', content: '# Hello', description: 'x'.repeat(256) };
       const result = await client.callTool({ name: 'create_page', arguments: args });
       expect(fns.createPage).not.toHaveBeenCalled();
       expect(isErrorOf(result)).toBe(true);
@@ -201,8 +201,8 @@ describe('registerPageTools (Etapa 4a)', () => {
   it('update_page calls wiki.updatePage(id, input) without the id in the input', async () => {
     const { client, fns, close } = await setup();
     try {
-      const result = await client.callTool({ name: 'update_page', arguments: { id: 7, content: 'nuevo contenido', isPublished: false } });
-      expect(fns.updatePage).toHaveBeenCalledWith(7, { content: 'nuevo contenido', isPublished: false });
+      const result = await client.callTool({ name: 'update_page', arguments: { id: 7, content: 'new content', isPublished: false } });
+      expect(fns.updatePage).toHaveBeenCalledWith(7, { content: 'new content', isPublished: false });
       expect(JSON.parse(textOf(result))).toEqual({ ...publishedPage, id: 7 });
     } finally {
       await close();
@@ -285,7 +285,7 @@ describe('registerPageTools (Etapa 4a)', () => {
       expect(fns.listAllPages).toHaveBeenCalled();
       expect(JSON.parse(textOf(allUnpublished))).toEqual([draftPage]);
 
-      const matched = await client.callTool({ name: 'search_unpublished_pages', arguments: { query: 'DOS' } });
+      const matched = await client.callTool({ name: 'search_unpublished_pages', arguments: { query: 'TWO' } });
       expect(JSON.parse(textOf(matched))).toEqual([draftPage]);
 
       const noMatch = await client.callTool({ name: 'search_unpublished_pages', arguments: { query: 'zzz' } });
@@ -310,7 +310,7 @@ describe('registerPageTools (Etapa 4a)', () => {
   });
 });
 
-describe('registerPageTools sync hooks (Etapa 8a)', () => {
+describe('registerPageTools sync hooks', () => {
   /** SyncService mock: the hooks are fired fire-and-forget, so plain vi.fn suffice. */
   function makeSync() {
     const fns = {
@@ -326,7 +326,7 @@ describe('registerPageTools sync hooks (Etapa 8a)', () => {
     try {
       const result = await client.callTool({
         name: 'create_page',
-        arguments: { path: '/nueva', title: 'Nueva', content: '# Hola' },
+        arguments: { path: '/new', title: 'New', content: '# Hello' },
       });
       expect(isErrorOf(result)).toBe(false);
       expect(fns.onAfterChange).toHaveBeenCalledTimes(1);
@@ -341,7 +341,7 @@ describe('registerPageTools sync hooks (Etapa 8a)', () => {
     const { sync, fns } = makeSync();
     const { client, close } = await setup({ sync });
     try {
-      const result = await client.callTool({ name: 'update_page', arguments: { id: 7, content: 'nuevo' } });
+      const result = await client.callTool({ name: 'update_page', arguments: { id: 7, content: 'new' } });
       expect(isErrorOf(result)).toBe(false);
       expect(fns.onAfterChange).toHaveBeenCalledTimes(1);
       expect(fns.onAfterChange).toHaveBeenCalledWith(7);

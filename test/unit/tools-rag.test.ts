@@ -6,15 +6,15 @@ import type { WikiClient } from '../../src/wiki/client.js';
 import type { Querier, SearchResult } from '../../src/rag/querier.js';
 import type { Indexer } from '../../src/rag/indexer.js';
 
-const longContent = 'Contenido largo de la guía. '.repeat(25); // > 300 chars → truncated snippet
+const longContent = 'Long content of the guide. '.repeat(25); // > 300 chars → truncated snippet
 
 const mockResults: SearchResult[] = [
   {
     chunk_id: 1,
     page_id: 10,
     path: '/guide',
-    title: 'Guía',
-    heading: 'Instalación',
+    title: 'Guide',
+    heading: 'Installation',
     content: longContent,
     score: 0.9,
     distance: 0.1,
@@ -24,7 +24,7 @@ const mockResults: SearchResult[] = [
     page_id: 11,
     path: '/api',
     title: 'API',
-    content: 'Documento de API.',
+    content: 'API document.',
     score: 0.5,
     distance: 0.5,
   },
@@ -124,7 +124,7 @@ async function setup(withIndexer = true): Promise<Harness> {
   };
 }
 
-describe('registerRagTools (Etapa 7b)', () => {
+describe('registerRagTools', () => {
   it('registers the 22 tools (ping + 17 CRUD + 4 RAG)', async () => {
     const { client, close } = await setup();
     try {
@@ -138,22 +138,22 @@ describe('registerRagTools (Etapa 7b)', () => {
   it('rag_search returns snippets + scores and calls querier.search(query, { limit })', async () => {
     const { client, querierFns, close } = await setup();
     try {
-      const result = await client.callTool({ name: 'rag_search', arguments: { query: 'guía' } });
-      expect(querierFns.search).toHaveBeenCalledWith('guía', { limit: 5 });
+      const result = await client.callTool({ name: 'rag_search', arguments: { query: 'guide' } });
+      expect(querierFns.search).toHaveBeenCalledWith('guide', { limit: 5 });
 
       const rows = JSON.parse(textOf(result)) as Record<string, unknown>[];
       expect(rows).toHaveLength(2);
 
       // Short content row: exact mapping, no truncation, no heading key.
-      expect(rows[1]).toEqual({ path: '/api', title: 'API', snippet: 'Documento de API.', score: 0.5 });
+      expect(rows[1]).toEqual({ path: '/api', title: 'API', snippet: 'API document.', score: 0.5 });
 
       // Long content row: metadata preserved, snippet truncated to ~300 chars + ellipsis.
       const first = rows[0];
       expect(first).toBeDefined();
       if (!first) throw new Error('rows[0] missing');
       expect(first.path).toBe('/guide');
-      expect(first.title).toBe('Guía');
-      expect(first.heading).toBe('Instalación');
+      expect(first.title).toBe('Guide');
+      expect(first.heading).toBe('Installation');
       expect(first.score).toBe(0.9);
       const snippet = first.snippet as string;
       expect(typeof snippet).toBe('string');
@@ -173,11 +173,11 @@ describe('registerRagTools (Etapa 7b)', () => {
 
       const parsed = JSON.parse(textOf(result)) as { context: string; sources: unknown };
       expect(parsed.sources).toEqual([
-        { path: '/guide', title: 'Guía', score: 0.9 },
+        { path: '/guide', title: 'Guide', score: 0.9 },
         { path: '/api', title: 'API', score: 0.5 },
       ]);
       expect(parsed.context).toBe(
-        `## /guide — Guía\n\n${longContent}\n\n---\n\n## /api — API\n\nDocumento de API.`,
+        `## /guide — Guide\n\n${longContent}\n\n---\n\n## /api — API\n\nAPI document.`,
       );
     } finally {
       await close();

@@ -75,7 +75,7 @@ function makeWikiMock(pages: RemotePage[], opts: { failContentFor?: Set<number> 
 const CONTENT_A = '# A\nBody one.\n\n## B\nBody two.';
 const CONTENT_B = '# A\nBody one EDITED.\n\n## B\nBody two.';
 
-describe('Poller (Etapa 8b, incremental resync)', () => {
+describe('Poller (incremental resync)', () => {
   it('indexes a page that is not yet in the db', async () => {
     const db = makeDb();
     const indexer = new Indexer({ db, embeddings: makeEmbeddingsMock() as unknown as EmbeddingsClient });

@@ -70,7 +70,7 @@ function pingText(result: CallToolOutcome): string {
   return first.text;
 }
 
-describe('MCP transport integration (Etapa 2)', () => {
+describe('MCP transport integration', () => {
   let running: RunningApp;
   const clients: Client[] = [];
 

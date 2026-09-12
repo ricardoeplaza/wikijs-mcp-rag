@@ -20,7 +20,7 @@ function makeLogger() {
   return { warn, logger: { warn } as unknown as Logger };
 }
 
-describe('SyncService (Etapa 8a)', () => {
+describe('SyncService', () => {
   it('onAfterChange schedules a reindex for the given id', async () => {
     const { indexer, fns } = makeIndexer();
     const sync = new SyncService({ indexer });

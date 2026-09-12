@@ -86,7 +86,7 @@ const THREE_SECTIONS = [
   'Third section body.',
 ].join('\n');
 
-describe('Indexer (Etapa 6b, chunk + embed + store)', () => {
+describe('Indexer (chunk + embed + store)', () => {
   it('indexPage stores N chunks and N vectors for a multi-section document, embedding in one batch', async () => {
     const db = makeDb();
     const emb = makeEmbeddingsMock();
