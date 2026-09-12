@@ -24,7 +24,7 @@ export function registerUserTools(server: McpServer, wiki: WikiClient): void {
   server.registerTool(
     'list_users',
     {
-      description: 'Lista todos los usuarios de la instancia de Wiki.js.',
+      description: 'Lists all users of the Wiki.js instance.',
       inputSchema: z.object({}),
     },
     async () => {
@@ -39,7 +39,7 @@ export function registerUserTools(server: McpServer, wiki: WikiClient): void {
   server.registerTool(
     'search_users',
     {
-      description: 'Busca usuarios por texto (nombre o email).',
+      description: 'Searches users by text (name or email).',
       inputSchema: z.object({ query: z.string().min(1) }),
     },
     async ({ query }) => {
@@ -55,7 +55,7 @@ export function registerUserTools(server: McpServer, wiki: WikiClient): void {
     'create_user',
     {
       description:
-        'Crea un usuario local (providerKey "local", groups por defecto [2]; la password se envía como passwordRaw).',
+         'Creates a local user (providerKey "local", default groups [2]; the password is sent as passwordRaw).',
       inputSchema: z.object({
         name: z.string().min(1),
         email: z.string().email(),
@@ -76,7 +76,7 @@ export function registerUserTools(server: McpServer, wiki: WikiClient): void {
   server.registerTool(
     'update_user',
     {
-      description: 'Actualiza campos de un usuario existente (name, email, password).',
+      description: 'Updates fields of an existing user (name, email, password).',
       inputSchema: z.object({
         id: z.number().int(),
         name: z.string().optional(),

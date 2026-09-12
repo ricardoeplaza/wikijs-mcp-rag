@@ -69,7 +69,7 @@ export function registerRagTools(server: McpServer, deps: RagToolsDeps): void {
     'rag_search',
     {
       description:
-        'Búsqueda semántica (híbrida vectorial + léxica) sobre el índice RAG de la wiki. Devuelve hasta `limit` hits con path, title, heading opcional, snippet (~300 chars) y score.',
+         'Semantic search (hybrid vectorial + lexical) over the wiki RAG index. Returns up to `limit` hits with path, title, optional heading, snippet (~300 chars) and score.',
       inputSchema: z.object({
         query: z.string().min(1),
         limit: z.number().int().min(1).max(50).default(5),
@@ -89,7 +89,7 @@ export function registerRagTools(server: McpServer, deps: RagToolsDeps): void {
     'rag_get_context',
     {
       description:
-        'Devuelve un bloque de contexto ensamblado (contents separados por ---, cada uno con su path/title como encabezado) más la lista de sources, para dar contexto a un LLM.',
+         'Returns an assembled context block (contents separated by ---, each with its path/title as a heading) plus the list of sources, to provide context to an LLM.',
       inputSchema: z.object({
         query: z.string().min(1),
         limit: z.number().int().min(1).max(20).default(3),
@@ -112,7 +112,7 @@ export function registerRagTools(server: McpServer, deps: RagToolsDeps): void {
   server.registerTool(
     'rag_index_status',
     {
-      description: 'Estado del índice RAG: nº de páginas, chunks, dims y último indexado.',
+      description: 'RAG index status: number of pages, chunks, dims and last indexed.',
       inputSchema: z.object({}),
     },
     async () => {
@@ -128,13 +128,13 @@ export function registerRagTools(server: McpServer, deps: RagToolsDeps): void {
     'rag_reindex_page',
     {
       description:
-        'Re-indexa una página concreta (rechunk + re-embed + store). Requiere indexer disponible.',
+         'Re-indexes a specific page (rechunk + re-embed + store). Requires an available indexer.',
       inputSchema: z.object({ id: z.number().int() }),
     },
     async ({ id }) => {
       try {
         if (!indexer) {
-          return errorResult('indexer no disponible');
+          return errorResult('indexer not available');
         }
         return jsonResult(await indexer.reindexPage(id));
       } catch (err) {

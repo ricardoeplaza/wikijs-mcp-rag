@@ -212,7 +212,7 @@ describe('registerRagTools (Etapa 7b)', () => {
     try {
       const result = await client.callTool({ name: 'rag_reindex_page', arguments: { id: 1 } });
       expect(isErrorOf(result)).toBe(true);
-      expect(textOf(result)).toBe('indexer no disponible');
+      expect(textOf(result)).toBe('indexer not available');
     } finally {
       await close();
     }

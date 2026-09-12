@@ -21,7 +21,7 @@ export function registerGroupTools(server: McpServer, wiki: WikiClient): void {
   server.registerTool(
     'list_groups',
     {
-      description: 'Lista todos los grupos de la instancia de Wiki.js.',
+      description: 'Lists all groups of the Wiki.js instance.',
       inputSchema: z.object({}),
     },
     async () => {

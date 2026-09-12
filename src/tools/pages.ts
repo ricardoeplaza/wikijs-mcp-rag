@@ -31,7 +31,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
   server.registerTool(
     'get_page',
     {
-      description: 'Obtiene los metadatos de una página (sin contenido) a partir de su id numérico.',
+      description: 'Gets the metadata of a page (without content) by its numeric id.',
       inputSchema: z.object({ id: z.number().int() }),
     },
     async ({ id }) => {
@@ -46,7 +46,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
   server.registerTool(
     'get_page_content',
     {
-      description: 'Obtiene el contenido Markdown de una página por id ({ title, content }).',
+      description: 'Gets the Markdown content of a page by id ({ title, content }).',
       inputSchema: z.object({ id: z.number().int() }),
     },
     async ({ id }) => {
@@ -62,7 +62,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
     'list_pages',
     {
       description:
-        'Lista páginas (por defecto las primeras 50 ordenadas por título). Con includeUnpublished=false solo devuelve páginas publicadas.',
+         'Lists pages (by default the first 50, ordered by title). With includeUnpublished=false only published pages are returned.',
       inputSchema: z.object({
         limit: z.number().int().min(1).max(500).default(50),
         orderBy: z.enum(['TITLE', 'CREATED', 'UPDATED']).default('TITLE'),
@@ -82,7 +82,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
   server.registerTool(
     'search_pages',
     {
-      description: 'Busca páginas publicadas por texto completo y devuelve hasta `limit` resultados.',
+      description: 'Searches published pages by full text and returns up to `limit` results.',
       inputSchema: z.object({
         query: z.string().min(1),
         limit: z.number().int().min(1).max(200).default(50),
@@ -102,7 +102,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
     'create_page',
     {
       description:
-        'Crea una página en Markdown y la publica. El cliente aplica defaults: locale "es", editor markdown, isPublished true. Límites de BD: path, title y description máx. 255 caracteres; cada tag máx. 255 (se normalizan a minúsculas).',
+         'Creates a Markdown page and publishes it. The client applies defaults: locale "es", markdown editor, isPublished true. DB limits: path, title and description max 255 characters; each tag max 255 (normalized to lowercase).',
       inputSchema: z.object({
         path: z.string().min(1).max(255),
         title: z.string().min(1).max(255),
@@ -128,7 +128,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
     'update_page',
     {
       description:
-        'Actualiza campos de una página existente (content, title, description, isPublished, tags). tags es OPCIONAL y usa semántica replace-all: la lista enviada sustituye COMPLETAMENTE las etiquetas actuales (normalizadas a minúsculas); usa [] para quitar todas. Si se omite, las etiquetas no cambian. Límites de BD: title y description máx. 255 caracteres; cada tag máx. 255.',
+         'Updates fields of an existing page (content, title, description, isPublished, tags). tags is OPTIONAL and uses replace-all semantics: the list sent COMPLETELY replaces the current tags (normalized to lowercase); use [] to remove all. If omitted, tags are unchanged. DB limits: title and description max 255 characters; each tag max 255.',
       inputSchema: z.object({
         id: z.number().int(),
         content: z.string().optional(),
@@ -152,7 +152,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
   server.registerTool(
     'delete_page',
     {
-      description: 'Elimina una página (soft delete de Wiki.js; no purga datos).',
+      description: 'Deletes a page (Wiki.js soft delete; does not purge data).',
       inputSchema: z.object({ id: z.number().int() }),
     },
     async ({ id }) => {
@@ -169,7 +169,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
   server.registerTool(
     'publish_page',
     {
-      description: 'Publica una página (equivalente a update con isPublished=true).',
+      description: 'Publishes a page (equivalent to update with isPublished=true).',
       inputSchema: z.object({ id: z.number().int() }),
     },
     async ({ id }) => {
@@ -186,7 +186,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
   server.registerTool(
     'force_delete_page',
     {
-      description: 'Elimina una página de forma permanente (purge). Irreversible.',
+      description: 'Permanently deletes a page (purge). Irreversible.',
       inputSchema: z.object({ id: z.number().int() }),
     },
     async ({ id }) => {
@@ -203,7 +203,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
   server.registerTool(
     'get_page_status',
     {
-      description: 'Obtiene el estado de una página (metadatos, incluido isPublished).',
+      description: 'Gets the status of a page (metadata, including isPublished).',
       inputSchema: z.object({ id: z.number().int() }),
     },
     async ({ id }) => {
@@ -219,7 +219,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
     'list_all_pages',
     {
       description:
-        'Lista todo el corpus de páginas en una sola petición. Con includeUnpublished=false solo devuelve publicadas.',
+         'Lists the entire page corpus in a single request. With includeUnpublished=false only published pages are returned.',
       inputSchema: z.object({
         includeUnpublished: z.boolean().default(true),
       }),
@@ -238,7 +238,7 @@ export function registerPageTools(server: McpServer, wiki: WikiClient, sync?: Sy
     'search_unpublished_pages',
     {
       description:
-        'Filtra en cliente las páginas no publicadas de todo el corpus; con `query` solo aquellas cuyo path o title la contengan (case-insensitive).',
+         'Client-side filter of the unpublished pages across the whole corpus; with `query` only those whose path or title contains it (case-insensitive).',
       inputSchema: z.object({
         query: z.string().optional(),
         limit: z.number().int().min(1).max(200).default(50),
