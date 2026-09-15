@@ -1,0 +1,4 @@
+# Normalize line endings: the repo and working trees use LF everywhere.
+# Critical for shell scripts that run inside Docker images built on Linux
+# (a CRLF entrypoint.sh would fail with "bad interpreter: /bin/sh^M").
+* text=auto eol=lf
