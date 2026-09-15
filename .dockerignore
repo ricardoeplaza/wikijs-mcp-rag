@@ -1,0 +1,28 @@
+# VCS
+.git
+.github
+
+# Node (rebuilt inside the image)
+node_modules
+coverage
+
+# Build artifacts (rebuilt inside the image)
+dist
+
+# Local runtime data & secrets: never ship them in the build context
+.env
+data
+*.db
+*.db-journal
+*.log
+
+# Tests, docs & CI (not needed for the image)
+test
+README.md
+README.es.md
+docker-compose.yml
+Dockerfile
+.dockerignore
+.prettierrc
+eslint.config.js
+vitest.config.ts
