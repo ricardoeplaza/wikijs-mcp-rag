@@ -1,12 +1,16 @@
 # syntax=docker/dockerfile:1
 
 # --- Build stage (TypeScript -> dist/) ---
-# No native toolchain needed: better-sqlite3 and @photostructure/sqlite-vec ship
-# prebuilt binaries (linuxmusl-x64/arm64) inside their npm packages.
+# better-sqlite3 and @photostructure/sqlite-vec ship prebuilt binaries
+# (linuxmusl-x64/arm64) inside their npm packages, so nothing is compiled.
+# libc6-compat lets esbuild's glibc postinstall binary run on musl; the C++
+# toolchain is insurance in case a dependency ever falls back to node-gyp.
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN apk add --no-cache --virtual .build-deps python3 make g++ libc6-compat \
+    && npm ci \
+    && apk del .build-deps
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN npm run build && npm prune --omit=dev
