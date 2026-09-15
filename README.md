@@ -134,7 +134,59 @@ Copy [`.env.example`](.env.example) to `.env` and fill in the **required** value
 
 ## How to run
 
-### Option A — Docker Compose (recommended)
+### Option A — Published Docker image (GHCR, recommended)
+
+Multi-arch image (`linux/amd64`, `linux/arm64`), built on every push to `main`:
+
+```bash
+docker pull ghcr.io/ricardoeplaza/wikijs-mcp-rag:latest
+```
+
+Minimal one-liner (standalone, no compose):
+
+```bash
+docker run -d --name wikijs-mcp-rag \
+  -p 8000:8000 \
+  -v wikijs-mcp-rag-data:/data \
+  -e MCP_TOKEN=change-me \
+  -e WIKIJS_BASE_URL=http://wiki:3000 \
+  ghcr.io/ricardoeplaza/wikijs-mcp-rag:latest
+
+curl http://localhost:8000/health        # => { "status":"ok" }
+```
+
+Drop-in service for an **existing Wiki.js docker-compose stack** (add to the
+same `services:` block; `WIKIJS_BASE_URL` uses the wiki's service name):
+
+```yaml
+  wikijs-mcp-rag:
+    image: ghcr.io/ricardoeplaza/wikijs-mcp-rag:latest
+    container_name: wikijs-mcp-rag
+    environment:
+      MCP_TOKEN: change-me                              # required (secure bearer)
+      WIKIJS_BASE_URL: http://wiki:3000                 # service name of your wiki
+      WIKIJS_TOKEN: ""                                  # only if the instance uses an API key
+      EMBEDDINGS_BASE_URL: http://embeddings:8071/v1    # optional; RAG tools disabled without it
+    ports:
+      - "8000:8000"
+    volumes:
+      - wikijs-mcp-rag-data:/data                       # SQLite persistence (chunks + vectors)
+    restart: unless-stopped
+
+volumes:
+  wikijs-mcp-rag-data:
+```
+
+Notes:
+
+- The container runs as the unprivileged `node` user; when it starts as root
+  (default) the entrypoint fixes ownership of the `/data` volume for you.
+- Wiki.js and embeddings are **external**: make sure `WIKIJS_BASE_URL` and
+  `EMBEDDINGS_BASE_URL` point to services reachable from the container.
+- The nightly resync uses the container's local time (UTC by default); set
+  `-e TZ=Europe/Madrid` if you want it in your timezone.
+
+### Option B — Docker Compose from source
 
 ```bash
 # 1. Configure the environment
@@ -149,10 +201,8 @@ curl http://localhost:8000/health        # => { "status":"ok" }
 ```
 
 - The SQLite database persists in `./data` (volume mounted at `/data`, `RAG_DB_PATH=/data/wikijs-rag.db`).
-- Wiki.js and embeddings are **external**: make sure `WIKIJS_BASE_URL` and
-  `EMBEDDINGS_BASE_URL` point to services reachable from the container.
 
-### Option B — Local development (no Docker)
+### Option C — Local development (no Docker)
 
 ```bash
 npm install
