@@ -151,4 +151,12 @@ describe('EmbeddingsClient', () => {
 
     await expect(client.embed(['a', 'b'])).rejects.toThrow(/dimension mismatch/);
   });
+
+  it('throws a clear "not configured" error when baseUrl is empty (no HTTP attempted)', async () => {
+    const mock = createMockFetch();
+    const client = makeClient(mock, { baseUrl: '' });
+
+    await expect(client.embed(['alpha'])).rejects.toThrow(/EMBEDDINGS_BASE_URL|not configured/i);
+    expect(mock.state().calls).toBe(0); // short-circuits before any network call
+  });
 });

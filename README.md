@@ -17,35 +17,35 @@ hybrid search (vector + lexical).
 ## Architecture
 
 ```
-                           ┌───────────────────────────────────────────────┐
+                           ┌────────────────────────────────────────────────┐
    MCP client              │              wikijs-mcp-rag (Fastify)          │
-   (OpenCode, llama.cpp    │                                               │
-    UI, ...)               │  ┌─────────────────────────────────────────┐  │
-         │                 │  │            McpServer (22 tools)         │  │
-         │  HTTP           │  │  ┌───────────────┐      ┌────────────┐  │  │
-         ├────────────────►│  │  │ Tools CRUD    │      │ Tools RAG  │  │  │
-         │  /mcp (bearer)  │  │  │ pages(12)     │      │ rag_search │  │  │
-         │  /sse (bearer)  │  │  │ users(4)      │      │ rag_get_   │  │  │
-         │                 │  │  │ groups(1)     │      │ context    │  │  │
-         │                 │  │  │ + ping        │      │ rag_index_ │  │  │
-         │                 │  │  └───────┬───────┘      │ status     │  │  │
-         │                 │  │           │              │ rag_reindex│ │  │
-         │                 │  │           │              └─────┬──────┘  │  │
-         │                 │  └───────────┼────────────────────┼──────────┘  │
-         │                 │              │                    │             │
+   (OpenCode, llama.cpp    │                                                │
+    UI, ...)               │  ┌─────────────────────────────────────────┐   │
+         │                 │  │            McpServer (22 tools)         │   │
+         │  HTTP           │  │   ┌───────────────┐      ┌────────────┐ │   │
+         ├────────────────►│  │   │ Tools CRUD    │      │ Tools RAG  │ │   │
+         │  /mcp (bearer)  │  │   │ pages(12)     │      │ rag_search │ │   │
+         │  /sse (bearer)  │  │   │ users(4)      │      │ rag_get_   │ │   │
+         │                 │  │   │ groups(1)     │      │ context    │ │   │
+         │                 │  │   │ + ping        │      │ rag_index_ │ │   │
+         │                 │  │   └───────┬───────┘      │ status     │ │   │
+         │                 │  │           │              │ rag_reindex│ │   │
+         │                 │  │           │              └─────┬──────┘ │   │
+         │                 │  └───────────┼────────────────────┼────────┘   │
+         │                 │              │                    │            │
          │                 │  ┌───────────▼──────────┐  ┌──────▼──────────┐ │
          │                 │  │    WikiClient        │  │     RagDb       │ │
-         │                 │  │  (GraphQL, bearer)   │  │ SQLite+sqlite-vec│ │
+         │                 │  │  (GraphQL, bearer)   │  │ SQLite+sqlite-vec │
          │                 │  └───────────┬──────────┘  └──────┬──────────┘ │
-         │                 │              │                    ▲             │
-         ▼                 │              │                    │             │
+         │                 │              │                    ▲            │
+         ▼                 │              │                    │            │
   ┌──────────────┐         │   ┌──────────▼──────────┐  ┌──────┴──────────┐ │
   │  Wiki.js     │◄────────┘   │   Indexer/Querier   │─►│ EmbeddingsClient│ │
   │ (external)   │             │ chunk+embed+store   │  │  (llama.cpp)    │ │
   └──────────────┘             └─────────────────────┘  └──────┬──────────┘ │
                                                                ▼            │
                                                     ┌──────────────────┐    │
-                                                    │ Embeddings (ext)│    │
+                                                    │ Embeddings (ext) │    │
                                                     └──────────────────┘    │
                                                                             │
    Background sync:  CRUD hooks (SyncService) + Poller (5 min) + nightly Scheduler
@@ -109,7 +109,7 @@ Copy [`.env.example`](.env.example) to `.env` and fill in the **required** value
 | `WIKIJS_BASE_URL` | no | `http://wikijs:3000` | Base URL of Wiki.js (actual endpoint `<base>/graphql`). |
 | `WIKIJS_TOKEN` | no | `''` | Wiki.js admin token. Optional: empty ⇒ the client omits the `Authorization` header (instance without an API key). |
 | `WIKIJS_INSECURE_TLS` | no | `true` | Accepts the proxy's self-signed TLS certificate. |
-| `EMBEDDINGS_BASE_URL` | **yes** | — | Base URL of the external embeddings server (`<base>/embeddings`). |
+| `EMBEDDINGS_BASE_URL` | no | — | Base URL of the external embeddings server (`<base>/embeddings`). Optional: when unset the RAG tools return a clear "not configured" error and the rest of the server keeps working. |
 | `EMBEDDINGS_API_KEY` | no | `no-key` | API key (llama.cpp ignores it). |
 | `EMBEDDINGS_MODEL` | no | `Qwen3-Embedding-0.6B` | Model name (metadata). |
 | `EMBEDDINGS_DIM` | no | `1024` | Embedding dimensionality. Changing it = reindex everything. |

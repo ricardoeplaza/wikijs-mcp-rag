@@ -140,10 +140,15 @@ describe('loadConfig', () => {
     expect(() => loadConfig()).toThrowError(/EMBEDDINGS_DIM/);
   });
 
-  it('rejects missing required variables', () => {
+  it('loads without EMBEDDINGS_BASE_URL (optional) and warns that RAG tools are unavailable', () => {
+    const warnSpy = vi.spyOn(logger, 'warn');
     setEnv();
     delete process.env.EMBEDDINGS_BASE_URL;
-    expect(() => loadConfig()).toThrowError(/EMBEDDINGS_BASE_URL/);
+
+    const config = loadConfig();
+
+    expect(config.embeddingsBaseUrl).toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('EMBEDDINGS_BASE_URL'));
   });
 
   it('treats WIKIJS_TOKEN as optional: empty token loads without throwing and warns', () => {

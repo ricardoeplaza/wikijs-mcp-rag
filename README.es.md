@@ -109,7 +109,7 @@ Copia [`.env.example`](.env.example) a `.env` y rellena los valores **requeridos
 | `WIKIJS_BASE_URL` | no | `http://wikijs:3000` | URL base de Wiki.js (endpoint real `<base>/graphql`). |
 | `WIKIJS_TOKEN` | no | `''` | Token admin de Wiki.js. Opcional: vacío ⇒ el cliente omite el header `Authorization` (instancia sin API key). |
 | `WIKIJS_INSECURE_TLS` | no | `true` | Aceptar certificado TLS autofirmado del proxy. |
-| `EMBEDDINGS_BASE_URL` | **sí** | — | URL base del servidor de embeddings externo (`<base>/embeddings`). |
+| `EMBEDDINGS_BASE_URL` | no | — | URL base del servidor de embeddings externo (`<base>/embeddings`). Opcional: si no se configura, las herramientas RAG devuelven un error claro "no configurado" y el resto del servidor sigue funcionando. |
 | `EMBEDDINGS_API_KEY` | no | `no-key` | API key (llama.cpp la ignora). |
 | `EMBEDDINGS_MODEL` | no | `Qwen3-Embedding-0.6B` | Nombre del modelo (metadato). |
 | `EMBEDDINGS_DIM` | no | `1024` | Dimensionalidad del embedding. Cambiar = reindexar todo. |

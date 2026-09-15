@@ -12,7 +12,9 @@ const envSchema = z.object({
   WIKIJS_INSECURE_TLS: boolFromEnv.default('true'),
 
   // --- Embeddings (external llama.cpp, OpenAI-compatible) ---
-  EMBEDDINGS_BASE_URL: z.string().url(),
+  // Optional: when absent the server still starts and the RAG tools return a
+  // clear "not configured" error instead of refusing to boot.
+  EMBEDDINGS_BASE_URL: z.string().url().optional(),
   EMBEDDINGS_API_KEY: z.string().default('no-key'),
   EMBEDDINGS_MODEL: z.string().min(1).default('Qwen3-Embedding-0.6B'),
   EMBEDDINGS_DIM: z.coerce.number().int().positive().default(1024),
@@ -46,7 +48,7 @@ export interface Config {
   wikijsBaseUrl: string;
   wikijsToken: string;
   wikijsInsecureTls: boolean;
-  embeddingsBaseUrl: string;
+  embeddingsBaseUrl?: string;
   embeddingsApiKey: string;
   embeddingsModel: string;
   embeddingsDim: number;
@@ -124,6 +126,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       'WIKIJS_TOKEN is empty: the Wiki.js client will call the GraphQL API WITHOUT an ' +
         'Authorization header. This only works when the target Wiki.js instance has no ' +
         'API key / admin token configured.',
+    );
+  }
+
+  if (!config.embeddingsBaseUrl) {
+    logger.warn(
+      'EMBEDDINGS_BASE_URL is not set: the RAG tools (rag_search, rag_get_context, ' +
+        'rag_index_status, rag_reindex_page) will be unavailable until an OpenAI-compatible ' +
+        'embeddings server URL is configured.',
     );
   }
 

@@ -19,8 +19,12 @@
  */
 
 export interface EmbeddingsClientOptions {
-  /** Base URL of the OpenAI-compatible server (e.g. `http://host:8071/v1`). */
-  baseUrl: string;
+  /**
+   * Base URL of the OpenAI-compatible server (e.g. `http://host:8071/v1`).
+   * Optional: when empty/undefined, {@link EmbeddingsClient.embed} throws a clear
+   * "not configured" error instead of performing any HTTP request.
+   */
+  baseUrl?: string;
   /** Model name sent in the request body. */
   model: string;
   /** Expected embedding dimensionality. When set, vectors of a different length are rejected. */
@@ -65,7 +69,9 @@ export class EmbeddingsClient {
   private _chain: Promise<void> = Promise.resolve();
 
   constructor(options: EmbeddingsClientOptions) {
-    this.baseUrl = options.baseUrl.replace(/\/+$/, '');
+    // `baseUrl` may be empty/undefined when no embeddings server is configured
+    // (EMBEDDINGS_BASE_URL optional); `embed()` then short-circuits with a clear error.
+    this.baseUrl = (options.baseUrl ?? '').replace(/\/+$/, '');
     this.model = options.model;
     this.dims = options.dims;
     this.batchSize = Math.max(1, options.batchSize ?? DEFAULT_BATCH_SIZE);
@@ -79,6 +85,12 @@ export class EmbeddingsClient {
    * the input array. Returns `[]` for empty input.
    */
   async embed(texts: string[]): Promise<number[][]> {
+    if (!this.baseUrl) {
+      throw new Error(
+        'Embeddings server is not configured (EMBEDDINGS_BASE_URL is empty). ' +
+          'The RAG tools require an OpenAI-compatible embeddings server to be reachable.',
+      );
+    }
     const results: number[][] = new Array<number[]>(texts.length);
     let offset = 0;
     for (let i = 0; i < texts.length; i += this.batchSize) {
