@@ -25,12 +25,20 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+
+      # Bisect step for the SIGSEGVs seen in Vitest forks: runs the exact
+      # native ops (vec0 DDL + KNN) in plain Node, outside the test runner.
+      # Fail here => bindings broken on this platform; pass here + red test
+      # => Vitest-specific crash.
+      - name: Native smoke (plain node, no vitest)
+        run: node scripts/native-smoke.mjs
+
       - run: npm test
 
   docker:
@@ -40,6 +48,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # QEMU only emulates the JS build (tsc): both native deps ship prebuilt
+      # binaries in their npm packages, nothing is compiled inside Docker.
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
@@ -69,6 +79,8 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.licenses=MIT
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # Pulls the just-pushed image back and boots it (no auth, no wiki
       # reachable): validates entrypoint, non-root handoff and /health.

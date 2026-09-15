@@ -25,9 +25,10 @@
  * an enforced cascade from `pages` could not reach the vec0 rows and would orphan vectors.
  * All chunk/vector cleanup is done explicitly in `replaceChunksForPage`/`purgePage`.
  *
- * The `sqlite-vec` extension is loaded per connection and MUST be loaded before the vec0
- * virtual table is created. On ESM/Windows the loadable path is resolved by the package
- * itself: `load(db)` → no manual path handling needed.
+ * The `@photostructure/sqlite-vec` extension is loaded per connection and MUST be loaded
+ * before the vec0 virtual table is created. The loadable path of the platform-specific
+ * prebuilt binary (glibc/musl, x64/arm64) is resolved by the package itself: `load(db)`
+ * → no manual path handling needed.
  *
  * Dims integrity: `checkIntegrity(expectedDims)` compares the configured dims against
  * `meta.embedding_dims` and throws an actionable error on mismatch — vector spaces must
@@ -41,7 +42,7 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import Database from 'better-sqlite3';
-import { load as loadSqliteVec } from 'sqlite-vec';
+import { load as loadSqliteVec } from '@photostructure/sqlite-vec';
 
 export interface RagDbOptions {
   /** SQLite file path. Omitted → in-memory database (`:memory:`). */
